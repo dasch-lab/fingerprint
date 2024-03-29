@@ -43,10 +43,10 @@ test_output/
 
 # Ignore folder
 dMaSIF/
-LMR-SurfaceID/
-masif/
 figures/
 PINet/
+tmp/
+data_preparation/
 
 # Ignore subfolders inside dataset folder
 
