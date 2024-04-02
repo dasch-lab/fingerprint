@@ -25,6 +25,9 @@ var/
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+pymesh2-0.3-cp37-cp37m-linux_x86_64.whl
+train.log
+nn_desc.test.npz
 
 # Unit test / coverage reports
 htmlcov/
@@ -35,6 +38,10 @@ nosetests.xml
 coverage.xml
 #test/
 test_output/
+test_results/
+z_prova/
+z_prova_copy/
+provaESMFold/
 
 # Translations
 *.mo
@@ -53,6 +60,8 @@ masif/apbs-pdb2pqr-vAPBS-1.5-release/
 masif/msms/
 masif/PyMesh/
 masif/reduce/
+obsolete/
+librerie/
 
 
 
