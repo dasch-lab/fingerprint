@@ -2,6 +2,7 @@ from Bio.PDB import *
 from Bio import SeqIO
 import numpy as np
 from sklearn.neighbors import KDTree
+from pre_processing.source.input_output.ESMFold import ESMModel
 
 """
 computeCharges.py: Wrapper function to compute hydrogen bond potential (free electrons/protons) in the surface
@@ -41,6 +42,10 @@ def computeFlexibility(pdb_filename, vertices, names):
     parser = PDBParser(QUIET=True)
     struct = parser.get_structure(pdb_filename, pdb_filename + ".pdb")
     sequence = getSequence(pdb_filename)
+
+    #TODO Add the ESMFold
+    #TODO Findout how this function works
+
 
 
     # A dictionary (residues) is created to store residues based on their chain and residue ID.
