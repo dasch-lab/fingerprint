@@ -47,6 +47,14 @@ figures/
 PINet/
 tmp/
 data_preparation/
+/disk1/fingerprint/masif/APBS-1.5-linux64/
+/disk1/fingerprint/masif/APBS-3.4.1.Linux/
+/disk1/fingerprint/masif/apbs-pdb2pqr-vAPBS-1.5-release/
+/disk1/fingerprint/masif/msms/
+/disk1/fingerprint/masif/PyMesh/
+/disk1/fingerprint/masif/reduce/
+
+
 
 # Ignore subfolders inside dataset folder
 
