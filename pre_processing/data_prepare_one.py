@@ -26,11 +26,11 @@ os.environ["PDB2XYZRN"] = "/disk1/fingerprint/librerie/msms/pdb_to_xyzrn"
 def main():
     # Get the root directory of the Git repository
     masif_root = subprocess.run(['git', 'rev-parse', '--show-toplevel'], capture_output=True, text=True).stdout.strip()
-    masif_source = os.path.join(masif_root, 'masif')
+    masif_source = os.path.join(masif_root, 'pre_processing')
 
     # Add masif_source to PYTHONPATH
     #os.environ['PYTHONPATH'] = os.pathsep.join([os.environ.get('PYTHONPATH', ''), masif_source])
-    name = '4FQY_AB_HL'
+    name = '4FQI_AB_HL'
 
     # Extract PDB_ID, CHAIN1, and CHAIN2 from the input argument
     #pdb_id, chain1, chain2 = sys.argv[1].split('_')

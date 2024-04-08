@@ -83,12 +83,7 @@ class ESMModel():
       pdbs.append(to_pdb(pred))       
       
     return pdbs
-  
-  @staticmethod
-  def get_b_factor():
-     pass
 
-"""
 def parse_pdb_b_factors(pdb_file):
     parser = PDBParser(QUIET=True)
     structure = parser.get_structure('pdb_structure', pdb_file)
@@ -103,6 +98,20 @@ def parse_pdb_b_factors(pdb_file):
     
     return b_factors
 
+def dictionary_pdb_bfactors(structure):
+   b_factor_dict = []
+   for model in structure:
+        for chain in model:
+            chain =  chain.get_id()
+            for residue in chain:
+                residue_id = residue.get_id()[1]
+                residue_name = residue.get_resname()
+                for atom in residue:
+                    atom_name =  atom.get_name() 
+                    key = chain + '_' + residue_id + '_' + residue_id + '_' + residue_name + '_' + atom_name
+                    b_factor_dict[key] = atom.get_factor()
+   return b_factor_dict
+   
 
 if __name__ == "__main__":
   #parser = PDBParser(QUIET=True)
@@ -117,4 +126,3 @@ if __name__ == "__main__":
 
   pdb_data = parse_pdb_b_factors("/disk1/fingerprint/provaESMFold/output.pdb")
   print(pdb_data)
-"""

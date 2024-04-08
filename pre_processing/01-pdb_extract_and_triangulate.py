@@ -29,6 +29,8 @@ from source.triangulation.compute_normal import compute_normal
 from source.triangulation.computeFlexibility import computeFlexibility
 from sklearn.neighbors import KDTree
 
+esm_folder = "/disk1/fingerprint/provaESMFold"
+
 # Check if the correct number of command-line arguments is provided. If not, it prints usage information and exits
 if len(sys.argv) <= 1: 
     print("Usage: {config} "+sys.argv[0]+" PDBID_A")
@@ -72,7 +74,8 @@ if masif_opts['use_hphob']:
 
 
 if masif_opts['use_flexibility']:
-    vertex_flexibility = computeFlexibility(names1)
+    esm_file = esm_folder + "/"+pdb_id + "_" + chain_ids1
+    vertex_flexibility = computeFlexibility(esm_file, vertices1, names1)
 
 # If protonate = false, recompute MSMS of surface, but without hydrogens (set radius of hydrogens to 0).
 vertices2 = vertices1
