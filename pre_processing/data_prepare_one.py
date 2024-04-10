@@ -40,10 +40,15 @@ def main():
 
     # Execute the Python scripts
     subprocess.run(['python', os.path.join(masif_source, '00-pdb_download.py'), name])
+    print('Done 00-pdb_download.py')
     subprocess.run(['python', os.path.join(masif_source, '01-pdb_extract_and_triangulate.py'), f'{pdb_id}_{chain1}'])
+    print(f'Done 01-pdb_extract_and_triangulate.py for {pdb_id}_{chain1}')
     subprocess.run(['python', os.path.join(masif_source, '01-pdb_extract_and_triangulate.py'), f'{pdb_id}_{chain2}'])
+    print(f'Don 01-pdb_extract_and_triangulate.py for {pdb_id}_{chain1}')
     subprocess.run(['python', os.path.join(masif_source, '04-masif_precompute.py'), 'masif_site', name])
+    print(f'Done 04-masif_precompute.py for masif_site')
     subprocess.run(['python', os.path.join(masif_source, '04-masif_precompute.py'), 'masif_ppi_search', name])
+    print(f'Done 04-masif_precompute.py for masif_ppi_search')
 
 if __name__ == "__main__":
     main()

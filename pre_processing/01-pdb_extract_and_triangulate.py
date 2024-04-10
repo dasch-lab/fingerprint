@@ -74,8 +74,7 @@ if masif_opts['use_hphob']:
 
 
 if masif_opts['use_flexibility']:
-    esm_file = esm_folder + "/"+pdb_id + "_" + chain_ids1
-    vertex_flexibility = computeFlexibility(esm_file, vertices1, names1)
+    vertex_flexibility = computeFlexibility(out_filename1, vertices1, names1)
 
 # If protonate = false, recompute MSMS of surface, but without hydrogens (set radius of hydrogens to 0).
 vertices2 = vertices1

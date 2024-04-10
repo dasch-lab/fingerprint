@@ -14,6 +14,7 @@ from source.default_config.masif_opts import masif_opts
 # Local includes
 #from input_output.protonate import protonate
 from source.input_output.protonate import protonate
+from source.input_output.PDB import change_res_id
 
 if len(sys.argv) <= 1: 
     print("Usage: "+sys.argv[0]+" PDBID_A_B")
@@ -34,9 +35,16 @@ pdb_id = in_fields[0]
 pdbl = PDBList()
 pdb_filename = pdbl.retrieve_pdb_file(pdb_id, pdir=masif_opts['tmp_dir'],file_format='pdb')
 
+
 ##### Protonate with reduce, if hydrogens included.
 # - Always protonate as this is useful for charges. If necessary ignore hydrogens later.
 protonated_file = masif_opts['raw_pdb_dir']+"/"+pdb_id+".pdb"
 protonate(pdb_filename, protonated_file)
 pdb_filename = protonated_file
+
+out = change_res_id(pdb_filename)
+if out:
+    print(f'Changed res_id of {pdb_filename}')
+else:
+    print(f'Failed to change res_id of {pdb_filename}')
 
