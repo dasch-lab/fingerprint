@@ -2,15 +2,34 @@ from Bio.PDB import *
 from Bio import SeqIO
 import numpy as np
 from sklearn.neighbors import KDTree
-from source.input_output.ESMFold import dictionary_pdb_bfactors, ESMModel
+#from source.input_output.ESMFold import parse_pdb_b_factors_mean
 from Bio import SeqIO
 from source.input_output.PDB import change_res_id
 
 path = "/disk1/fingerprint/provaESMFold"
 parser = PDBParser(QUIET=True)
 
+def parse_pdb_b_factors_mean(structure, b_factors = None):
+    if b_factors is None:
+      b_factors = {}
+
+    for model in structure:
+        for chain in model:
+            for residue in chain:
+                residue_id = residue.id[1]
+                b_factor_sum = 0.0
+                num_atoms = 0
+                for atom in residue:
+                    b_factor_sum += atom.get_bfactor()
+                    num_atoms += 1
+                if num_atoms > 0:
+                    mean_b_factor = b_factor_sum / num_atoms
+                    key = (chain.id, residue_id, residue.resname)
+                    b_factors[key] = mean_b_factor
+    return b_factors
+
 def dictionary_bfactors(pdb_file, chains):
-    model = ESMModel()
+    #model = ESMModel()
     pdb_name = pdb_file.split('/')[-1].split('_')[0]
     b_factor_dict = {}
     for record in SeqIO.parse(pdb_file + '.pdb', "pdb-atom"):
@@ -18,10 +37,10 @@ def dictionary_bfactors(pdb_file, chains):
         sequence = str(record.seq)
         out_file = pdb_name + '_' + chain + '_ESMFold.pdb'
         path = '/'.join(["/disk1/fingerprint/provaESMFold", out_file])
-        output = model.generate_model(chain = chain, data=sequence, pdb_write=True, model_path=path)
-        change_res_id(path)
+        #output = model.generate_model(chain = chain, data=sequence, pdb_write=True, model_path=path)
+        #change_res_id(path)
         structure = parser.get_structure(path.split('.')[0], path)
-        b_factor_dict = dictionary_pdb_bfactors(structure, b_factor_dict)
+        b_factor_dict = parse_pdb_b_factors_mean(structure, b_factor_dict)
     
     return b_factor_dict
 
@@ -63,14 +82,9 @@ def computeFlexibility(pdb_filename, vertices, names):
         aa = fields[3]
         atom_name = fields[4]
         # Compute the charge of the vertex
-        key = chain_id + '_' + str(res_id[1]) + '_' + aa + '_' + atom_name
-        try:
-            plddt[ix] = plddt_dict[key]
-        except:
-            if atom_name[0] == 'H':
-                plddt[ix] = 0.7
-            else:
-                print(f'This key does not exist: {key}')
+        #key = chain_id + '_' + str(res_id[1]) + '_' + aa + '_' + atom_name
+        key = (chain_id, res_id[1], aa)
+        plddt[ix] = plddt_dict[key]
 
     return plddt
     

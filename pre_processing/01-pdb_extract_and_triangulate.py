@@ -11,7 +11,7 @@ import shutil
 from Bio.PDB import * 
 import sys
 import importlib
-from IPython.core.debugger import set_trace
+#from IPython.core.debugger import set_trace
 
 # Local includes
 from source.default_config.masif_opts import masif_opts
@@ -62,7 +62,8 @@ try:
     vertices1, faces1, normals1, names1, areas1 = computeMSMS(out_filename1+".pdb",\
         protonate=True)
 except:
-    set_trace()
+    print("Error")
+    #set_trace()
 
 # Compute "charged" vertices: if hydrogen bonding information is used (use_hbond is true), the script computes "charged" vertices using the computeCharges function
 if masif_opts['use_hbond']:
