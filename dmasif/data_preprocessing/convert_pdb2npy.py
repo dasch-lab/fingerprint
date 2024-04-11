@@ -4,7 +4,7 @@ from tqdm import tqdm
 from Bio.PDB import *
 from pathlib import Path
 from Bio import SeqIO
-from ESMFold import ESMModel, dictionary_pdb_bfactors
+from ESMFold import ESMModel, parse_pdb_b_factors_mean
 from PDB import change_res_id
 import os
 
@@ -27,7 +27,7 @@ def computeFlexibility(fname):
         output = model.generate_model(chain = chain, data=sequence, pdb_write=True, model_path=path)
         change_res_id(path)
         structure = parser.get_structure(path.split('.')[0], path)
-        b_factor_dict = dictionary_pdb_bfactors(structure, b_factor_dict)
+        b_factor_dict = parse_pdb_b_factors_mean(structure, b_factor_dict)
     
     return b_factor_dict
 
@@ -47,7 +47,7 @@ def load_structure_np(fname, center):
     for atom in atoms:
         coords.append(atom.get_coord())
         types.append(ele2num[atom.element])
-        key = atom.get_parent().get_parent().id + '_' + str(atom.get_parent().get_id()[1]) + '_' + atom.get_parent().get_resname() + '_' + atom.get_name()
+        key = (atom.get_parent().get_parent().id, atom.get_parent().get_id()[1], atom.get_parent().get_resname())
         plddt.append(b_factor_dict[key])
 
     coords = np.stack(coords)
@@ -72,4 +72,4 @@ def convert_pdbs(pdb_dir, npy_dir):
         np.save(npy_dir / (p.stem + "_atomflex.npy"), protein["flexibility"])
 
 if __name__=="__main__":
-    convert_pdbs(Path("/disk1/fingerprint/dMaSIF/z_prova"), Path("/disk1/fingerprint/dMaSIF/z_prova_copy"))
+    convert_pdbs(Path("/disk1/fingerprint/dmasif/z_prova"), Path("/disk1/fingerprint/dmasif/z_prova_copy"))

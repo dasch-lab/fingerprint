@@ -13,7 +13,7 @@ import torch_geometric.transforms as T
 from torch_geometric.data import DataLoader
 from torch_geometric.nn import (
     DynamicEdgeConv,
-    PointConv,
+    PointNetConv,
     XConv,
     fps,
     radius,
@@ -128,7 +128,7 @@ class SAModule(torch.nn.Module):
         super(SAModule, self).__init__()
         self.ratio = ratio
         self.r = r
-        self.conv = PointConv(nn)
+        self.conv = PointNetConv(nn)
         self.max_num_neighbors = max_num_neighbors
 
     def forward(self, x, pos, batch):

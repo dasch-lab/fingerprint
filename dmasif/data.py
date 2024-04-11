@@ -238,6 +238,7 @@ def load_protein_pair(pdb_id, data_dir,single_pdb=False):
     p1_id = pspl[0] + "_" + pspl[1]
     p2_id = pspl[0] + "_" + pspl[2]
 
+    #TODO: cambiare
     p1 = load_protein_npy(p1_id, data_dir, center=False,single_pdb=single_pdb)
     p2 = load_protein_npy(p2_id, data_dir, center=False,single_pdb=single_pdb)
     # pdist = ((p1['xyz'][:,None,:]-p2['xyz'][None,:,:])**2).sum(-1).sqrt()
@@ -317,7 +318,7 @@ class ProteinPairsSurfaces(InMemoryDataset):
         pdb_dir = Path(self.root) / "raw" / "01-benchmark_pdbs"
         surf_dir = Path(self.root) / "raw" / "01-benchmark_surfaces"
         protein_dir = Path(self.root) / "raw" / "01-benchmark_surfaces_npy"
-        lists_dir = Path('./lists')
+        lists_dir = Path('/disk1/fingerprint/dmasif/lists')
 
         # Untar surface files
         if not (pdb_dir.exists() and surf_dir.exists()):

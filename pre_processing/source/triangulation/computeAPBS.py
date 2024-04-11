@@ -80,13 +80,13 @@ def computeAPBS(vertices, pdb_file, tmp_file_base):
         charges[ix] = float(line.split(",")[3])
 
     # ---------- CLEANUP ----------
-    remove_fn = os.path.join(directory, filename_base)
-    print(f"Removing files: {remove_fn}")
-    os.remove(remove_fn)
-    os.remove(remove_fn + '.csv')
-    os.remove(remove_fn + '.dx')
-    os.remove(remove_fn + '.in')
-    #os.remove(remove_fn + '_input.p')
-    os.remove(remove_fn + '_out.csv')
+    # remove_fn = os.path.join(directory, filename_base)
+    # print(f"Removing files: {remove_fn}")
+    # os.remove(remove_fn)
+    # os.remove(remove_fn + '.csv')
+    # os.remove(remove_fn + '.dx')
+    # os.remove(remove_fn + '.in')
+    # os.remove(remove_fn + '-input.p')
+    # os.remove(remove_fn + '_out.csv')
 
     return charges

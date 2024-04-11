@@ -16,7 +16,7 @@ def export_lib(new_path, name):
 os.environ["APBS_BIN"] = "/disk1/fingerprint/librerie/APBS-3.4.1.Linux/bin/apbs"
 os.environ["MULTIVALUE_BIN"] = "/disk1/fingerprint/librerie/APBS-3.4.1.Linux/share/apbs/tools/bin/multivalue"
 #os.environ["PDB2PQR_BIN"] = "/disk1/fingerprint/masif/APBS-3.4.1.Linux/share/apbs/tools/conversion/param/pdb2pqr"
-os.environ["PDB2PQR_BIN"] = "/home/s.joubbi/miniconda3/envs/surfaceid/bin/pdb2pqr"
+os.environ["PDB2PQR_BIN"] = "/home/s.joubbi/miniconda3/envs/surfaceid2/bin/pdb2pqr"
 export_lib("/disk1/fingerprint/librerie/reduce/build/reduce/reduce_src/", 'reduce')
 os.environ["REDUCE_HET_DICT"] = "/disk1/fingerprint/librerie/reduce/reduce_wwPDB_het_dict.txt"
 os.environ["MSMS_BIN"] = "/disk1/fingerprint/librerie/msms/msms.x86_64Linux2.2.6.1"

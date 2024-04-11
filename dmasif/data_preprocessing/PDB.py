@@ -226,11 +226,13 @@ def compare_pdb_structures(pdb_filename1, pdb_filename2):
 
 # Example usage
 
-#change_res_id("/disk1/fingerprint/tmp/4FQI_AB.pdb")
-pdb_filename1 = "/disk1/fingerprint/tmp/4FQI"
+"""
+#change_res_id("/disk1/fingerprint/data_preparation/00-raw_pdbs/4FQI copy.pdb")
+pdb_filename1 = "/disk1/fingerprint/data_preparation/00-raw_pdbs/4FQI"
 pdb_filename2 = "/disk1/fingerprint/provaESMFold/4FQI_H_ESMFold"
 comparison_result = compare_pdb_structures(pdb_filename1, pdb_filename2)
 for item in comparison_result:
     print(item)
 
 #change_res_id("/disk1/fingerprint/tmp/4FQI_AB copy.pdb")
+"""

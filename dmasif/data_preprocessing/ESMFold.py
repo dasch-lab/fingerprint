@@ -252,6 +252,26 @@ def dictionary_pdb_bfactors(structure, b_factor_dict = None):
        b_factor_dict[key] = atom.get_bfactor()
    return b_factor_dict
 
+def parse_pdb_b_factors_mean(structure, b_factors = None):
+    if b_factors is None:
+      b_factors = {}
+
+    for model in structure:
+        for chain in model:
+            for residue in chain:
+                residue_id = residue.id[1]
+                b_factor_sum = 0.0
+                num_atoms = 0
+                for atom in residue:
+                    b_factor_sum += atom.get_bfactor()
+                    num_atoms += 1
+                if num_atoms > 0:
+                    mean_b_factor = b_factor_sum / num_atoms
+                    key = (chain.id, residue_id, residue.resname)
+                    b_factors[key] = mean_b_factor
+    return b_factors
+
+"""
 if __name__ == "__main__":
     model = ESMModel()
     sequence = {}
@@ -262,3 +282,4 @@ if __name__ == "__main__":
         out_file = '4FQI_'+ chain + '_ESMFold.pdb'
         path = '/'.join(["/disk1/fingerprint/provaESMFold", out_file])
         output = model.generate_model(chain = chain, data=sequence[chain], pdb_write=True, model_path=path)
+"""

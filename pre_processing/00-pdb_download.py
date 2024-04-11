@@ -38,7 +38,7 @@ pdb_filename = pdbl.retrieve_pdb_file(pdb_id, pdir=masif_opts['tmp_dir'],file_fo
 
 ##### Protonate with reduce, if hydrogens included.
 # - Always protonate as this is useful for charges. If necessary ignore hydrogens later.
-protonated_file = masif_opts['raw_pdb_dir']+"/"+pdb_id+".pdb"
+protonated_file = masif_opts['raw_pdb_dir']+pdb_id+".pdb"
 protonate(pdb_filename, protonated_file)
 pdb_filename = protonated_file
 
