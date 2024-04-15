@@ -12,7 +12,7 @@ from Bio import SeqIO
 
 esm_model = None
 tokenizer = None
-"""
+
 def init_model():
 
   global esm_model
@@ -32,7 +32,7 @@ def init_model():
   # Uncomment this line if your GPU memory is 16GB or less, or if you're folding longer (over 600 or so) sequences
   esm_model.trunk.set_chunk_size(64)
 
-
+"""
 class ESMModel():
 
   def generate_model(self, data, pdb_write = True, model_path = None):
@@ -140,25 +140,25 @@ from transformers import AutoTokenizer, EsmForProteinFolding
 from transformers.models.esm.openfold_utils.protein import to_pdb, Protein as OFProtein
 from transformers.models.esm.openfold_utils.feats import atom14_to_atom37
 
-# Create the model
-is_cuda = False  # Set CUDA availability to False
 
-# Initialize the model and tokenizer
 def init_model():
-    global esm_model
-    global tokenizer
-    
-    if esm_model is not None:
-        return
-    
-    tokenizer = AutoTokenizer.from_pretrained("facebook/esmfold_v1")
-    esm_model = EsmForProteinFolding.from_pretrained("facebook/esmfold_v1", low_cpu_mem_usage=True)
-    
-    # No need to move the model to CUDA
-    # No need to set CUDA-specific configurations
 
-    # Uncomment this line if your GPU memory is 16GB or less, or if you're folding longer (over 600 or so) sequences
-    esm_model.trunk.set_chunk_size(64)
+  global esm_model
+  global tokenizer
+  
+  if esm_model is not None:
+    return
+  
+  tokenizer = AutoTokenizer.from_pretrained("facebook/esmfold_v1")
+  esm_model = EsmForProteinFolding.from_pretrained("facebook/esmfold_v1", low_cpu_mem_usage=True)
+  if is_cuda:
+    esm_model = esm_model.cuda()
+
+  # enable TensorFloat32 computation for a general speedup
+  torch.backends.cuda.matmul.allow_tf32 = True
+
+  # Uncomment this line if your GPU memory is 16GB or less, or if you're folding longer (over 600 or so) sequences
+  esm_model.trunk.set_chunk_size(64)
 
 class ESMModel():
     def generate_model(self, chain, data, pdb_write=True, model_path=None):
@@ -167,6 +167,8 @@ class ESMModel():
         
         # Tokenized input is on CPU by default
         tokenized_input = tokenizer(data, return_tensors="pt", add_special_tokens=False)['input_ids']
+        if is_cuda:
+          tokenized_input = tokenized_input.cuda()
     
         # Predict structure
         with torch.no_grad():

@@ -39,6 +39,8 @@ test_results/
 z_prova/
 z_prova_copy/
 provaESMFold/
+models/
+nohup_folder/
 
 # Translations
 *.mo
@@ -53,10 +55,11 @@ obsolete/
 librerie/
 surface_data/
 aaa/
-
+runs/
 
 
 # Ignore subfolders inside dataset folder
+SAbDab_preparation/
 
 # Ignore cache
 cache/

@@ -15,10 +15,12 @@ import time
 
 def process_single(protein_pair, chain_idx=1):
     """Turn the PyG data object into a dict."""
-
+    #print(">>>", type(protein_pair))
     P = {}
-    with_mesh = "face_p1" in protein_pair.keys
-    preprocessed = "gen_xyz_p1" in protein_pair.keys
+    # with_mesh = "face_p1" in protein_pair.keys
+    # preprocessed = "gen_xyz_p1" in protein_pair.keys
+    with_mesh = hasattr(protein_pair, "face_p1")
+    preprocessed = hasattr(protein_pair, "gen_xyz_p1")
 
     if chain_idx == 1:
         # Ground truth labels are available on mesh vertices:
@@ -122,14 +124,16 @@ def project_iface_labels(P, threshold=2.0):
 
 def process(args, protein_pair, net):
     P1 = process_single(protein_pair, chain_idx=1)
-    if not "gen_xyz_p1" in protein_pair.keys:
+    # if not "gen_xyz_p1" in protein_pair.keys:
+    if not hasattr(protein_pair, "gen_xyz_p1"):
         net.preprocess_surface(P1)
         #if P1["mesh_labels"] is not None:
         #    project_iface_labels(P1)
     P2 = None
     if not args.single_protein:
         P2 = process_single(protein_pair, chain_idx=2)
-        if not "gen_xyz_p2" in protein_pair.keys:
+        #if not "gen_xyz_p2" in protein_pair.keys:
+        if not hasattr(protein_pair, "gen_xyz_p1"):
             net.preprocess_surface(P2)
             #if P2["mesh_labels"] is not None:
             #    project_iface_labels(P2)
@@ -155,6 +159,11 @@ def generate_matchinglabels(args, P1, P2):
 
 
 def compute_loss(args, P1, P2, n_points_sample=16):
+
+    print("-------------------------- HERE -------------------------")
+
+    print(f'P1: {P1.keys()}')
+    print(f'P2: {P2.keys()}')
 
     if args.search:
         pos_xyz1 = P1["xyz"][P1["labels"] == 1]

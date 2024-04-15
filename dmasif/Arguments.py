@@ -148,7 +148,7 @@ parser.add_argument("--site", type=bool, default=False, help="Predict interactio
 parser.add_argument(
     "--search",
     type=bool,
-    default=False,
+    default=True,
     help="Predict matching between two partners",
 )
 parser.add_argument(
@@ -166,6 +166,6 @@ parser.add_argument(
 parser.add_argument(
     "--pdb_list",
     type=str,
-    default="",
+    default="4FQI",
     help="Which structures to do inference on",
 )
