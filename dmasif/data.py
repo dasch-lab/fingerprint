@@ -493,10 +493,13 @@ class ProteinPairsSurfaces(InMemoryDataset):
         #surf_dir = Path(self.root) / "raw" / "01-benchmark_surfaces"
         #protein_dir = Path(self.root) / "raw" / "01-benchmark_surfaces_npy"
         #lists_dir = Path('./lists')
+        
         pdb_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_pdbs")
         surf_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_surfaces")
         protein_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_surfaces_npy")
         lists_dir = Path('/disk1/fingerprint/dmasif/lists')
+
+
 
         # Untar surface files
         if not (pdb_dir.exists() and surf_dir.exists()):

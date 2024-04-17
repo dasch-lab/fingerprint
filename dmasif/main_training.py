@@ -61,12 +61,15 @@ train_nsamples = train_nsamples - val_nsamples
 train_dataset, val_dataset = random_split(
     train_dataset, [train_nsamples, val_nsamples]
 )
+print(f'Training data: {train_nsamples}')
+print(f'Validation data: {val_nsamples}')
 
 # Load the test dataset:
 test_dataset = ProteinPairsSurfaces(
     "surface_data", ppi=args.search, train=False, transform=transformations
 )
 test_dataset = [data for data in test_dataset if iface_valid_filter(data)]
+print(f'Test data: {len(test_dataset)}')
 test_loader = DataLoader(
     test_dataset, batch_size=1, follow_batch=batch_vars, shuffle=True
 )

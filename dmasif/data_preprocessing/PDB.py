@@ -1,5 +1,7 @@
 import re
 import struct
+from Bio.PDB import PDBParser, PDBIO
+import os
 
 '''
 A table to convert three-letters code AAs to one letter
@@ -189,13 +191,6 @@ def change_res_id(file_name):
   return True
 
 
-
-
-
-
-
-from Bio.PDB import PDBParser
-
 def compare_pdb_structures(pdb_filename1, pdb_filename2):
     parser = PDBParser(QUIET=True)
     structure1 = parser.get_structure(pdb_filename1, pdb_filename1 + ".pdb")
@@ -224,7 +219,23 @@ def compare_pdb_structures(pdb_filename1, pdb_filename2):
 
     return comparison_list
 
-# Example usage
+
+def extract_chains(input_pdb_path, chain_groups, output_folder):
+    atom_list = []
+    #parser = PDBParser()
+    #structure = parser.get_structure(input_pdb_path, input_pdb_path + '.pdb')
+    chain_list = [el for el in chain_groups]
+
+    for name in parse(input_pdb_path):
+       if name['chain'] in chain_groups:
+             atom_list.append(name)
+    
+    outputfile = output_folder + '/' + input_pdb_path.split('/')[-1].split('.')[0] +'_'+ chain_groups + '.pdb'
+
+    with open(outputfile, 'w') as handle:
+      for name in atom_list:
+        handle.write(name.toPDB() + '\n')
+    return True
 
 """
 #change_res_id("/disk1/fingerprint/data_preparation/00-raw_pdbs/4FQI copy.pdb")
