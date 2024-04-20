@@ -30,11 +30,14 @@ torch.cuda.manual_seed_all(args.seed)
 np.random.seed(args.seed)
 
 # Create the model, with a warm restart if applicable:
+if args.flexibility:
+    args.in_channels = args.in_channels + 1
 net = dMaSIF(args)
 net = net.to(args.device)
 
 # We load the train and test datasets.
 # Random transforms, to ensure that no network/baseline overfits on pose parameters:
+args.random_rotation = True
 transformations = (
     Compose([NormalizeChemFeatures(), CenterPairAtoms(), RandomRotationPairAtoms()])
     if args.random_rotation
@@ -44,9 +47,16 @@ transformations = (
 # PyTorch geometric expects an explicit list of "batched variables":
 batch_vars = ["xyz_p1", "xyz_p2", "atom_coords_p1", "atom_coords_p2"]
 # Load the train dataset:
-train_dataset = ProteinPairsSurfaces(
-    "surface_data", ppi=args.search, train=True, transform=transformations
-)
+
+if args.flexibility:
+    train_dataset = ProteinPairsSurfaces(
+        "surface_data", ppi=args.search, train=True, transform=transformations, flexibility = args.flexibility
+    )
+else:
+    train_dataset = ProteinPairsSurfaces(
+        "surface_data", ppi=args.search, train=True, transform=transformations
+    )
+
 train_dataset = [data for data in train_dataset if iface_valid_filter(data)]
 train_loader = DataLoader(
     train_dataset, batch_size=1, follow_batch=batch_vars, shuffle=True

@@ -1,0 +1,21 @@
+2024-04-20 11:17:22.930614: I tensorflow/core/platform/cpu_feature_guard.cc:182] This TensorFlow binary is optimized to use available CPU instructions in performance-critical operations.
+To enable the following instructions: AVX2 FMA, in other operations, rebuild TensorFlow with the appropriate compiler flags.
+2024-04-20 11:17:23.539786: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:38] TF-TRT Warning: Could not find TensorRT
+/home/s.joubbi/miniconda3/envs/dmasif/lib/python3.8/site-packages/torch_geometric/deprecation.py:26: UserWarning: 'data.DataLoader' is deprecated, use 'loader.DataLoader' instead
+  warnings.warn(out)
+  0%|          | 0/4615 [00:00<?, ?it/s]  0%|          | 0/4615 [00:00<?, ?it/s]
+Preprocessing training dataset
+Traceback (most recent call last):
+  File "main_training.py", line 65, in <module>
+    train_dataset = iterate_surface_precompute(train_loader, net, args)
+  File "/disk1/fingerprint/dmasif/data_iteration.py", line 439, in iterate_surface_precompute
+    P1, P2 = process(args, protein_pair, net)
+  File "/disk1/fingerprint/dmasif/data_iteration.py", line 128, in process
+    P1 = process_single(protein_pair, chain_idx=1)
+  File "/disk1/fingerprint/dmasif/data_iteration.py", line 44, in process_single
+    P["atomflex"] = protein_pair.atom_flexibility1 
+  File "/home/s.joubbi/miniconda3/envs/dmasif/lib/python3.8/site-packages/torch_geometric/data/data.py", line 559, in __getattr__
+    return getattr(self._store, key)
+  File "/home/s.joubbi/miniconda3/envs/dmasif/lib/python3.8/site-packages/torch_geometric/data/storage.py", line 96, in __getattr__
+    raise AttributeError(
+AttributeError: 'GlobalStorage' object has no attribute 'atom_flexibility1'

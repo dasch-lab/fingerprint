@@ -41,6 +41,7 @@ def process_single(protein_pair, chain_idx=1):
         # Chemical features: atom coordinates and types.
         P["atom_xyz"] = protein_pair.atom_coords_p1
         P["atomtypes"] = protein_pair.atom_types_p1
+        P["atomflex"] = protein_pair.atom_flexibility1 
 
         P["xyz"] = protein_pair.gen_xyz_p1 if preprocessed else None
         P["normals"] = protein_pair.gen_normals_p1 if preprocessed else None
@@ -66,6 +67,7 @@ def process_single(protein_pair, chain_idx=1):
         # Chemical features: atom coordinates and types.
         P["atom_xyz"] = protein_pair.atom_coords_p2
         P["atomtypes"] = protein_pair.atom_types_p2
+        P["atomflex"] = protein_pair.atom_flexibility2
 
         P["xyz"] = protein_pair.gen_xyz_p2 if preprocessed else None
         P["normals"] = protein_pair.gen_normals_p2 if preprocessed else None
@@ -246,6 +248,7 @@ def extract_single(P_batch, number):
     # Chemical features: atom coordinates and types.
     P["atom_xyz"] = P_batch["atom_xyz"][batch_atoms]
     P["atomtypes"] = P_batch["atomtypes"][batch_atoms]
+    P["atomflex"] = P_batch["atomflex"][batch_atoms]
 
     return P
 

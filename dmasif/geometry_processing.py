@@ -132,8 +132,42 @@ def subsample(x, batch=None, scale=1.0):
 
     return torch.cat(points, dim=0), torch.cat(batches, dim=0)
 
+def compute_soft_distances_type_flex(atomtypes, atomflex, D_ij, x, smoothness):
+    atomic_radii = torch.cuda.FloatTensor(
+            [170, 110, 152, 155, 180, 190], device=x.device
+        )
+    atomic_radii = atomic_radii / atomic_radii.min()
+    atomtype_radii = atomtypes * atomic_radii[None, :]  # n_atoms, n_atomtypes
+    #atomflex_radii = atomflex * atomic_radii[None, :]
+    # smoothness = atomtypes @ atomic_radii  # (N, 6) @ (6,) = (N,)
+    smoothness = torch.sum(
+        smoothness * atomtype_radii, dim=1, keepdim=False
+    )  # n_atoms, 1
+    smoothness_i = LazyTensor(smoothness[:, None, None])
 
-def soft_distances(x, y, batch_x, batch_y, smoothness=0.01, atomtypes=None):
+    # Compute an estimation of the mean smoothness in a neighborhood
+    # of each sampling point:
+    # density = (-D_ij.sqrt()).exp().sum(0).view(-1)  # (M,) local density of atoms
+    # smooth = (smoothness_i * (-D_ij.sqrt()).exp()).sum(0).view(-1)  # (M,)
+    # mean_smoothness = smooth / density  # (M,)
+
+    # soft_dists = -mean_smoothness * (
+    #    (-D_ij.sqrt() / smoothness_i).logsumexp(dim=0)
+    # ).view(-1)
+    mean_smoothness = (-D_ij.sqrt()).exp().sum(0)
+    mean_smoothness_j = LazyTensor(mean_smoothness[None, :, :])
+    mean_smoothness = (
+        smoothness_i * (-D_ij.sqrt()).exp() / mean_smoothness_j
+    )  # n_atoms, n_points, 1
+    mean_smoothness = mean_smoothness.sum(0).view(-1)
+    soft_dists = -mean_smoothness * (
+        (-D_ij.sqrt() / smoothness_i).logsumexp(dim=0)
+    ).view(-1)
+
+    return soft_dists
+
+
+def soft_distances(x, y, batch_x, batch_y, smoothness=0.01, atomtypes=None, atomflex=None):
     """Computes a soft distance function to the atom centers of a protein.
 
     Implements Eq. (1) of the paper in a fast and numerically stable way.
@@ -157,38 +191,8 @@ def soft_distances(x, y, batch_x, batch_y, smoothness=0.01, atomtypes=None):
     # Use a block-diagonal sparsity mask to support heterogeneous batch processing:
     D_ij.ranges = diagonal_ranges(batch_x, batch_y)
 
-    if atomtypes is not None:
-        # Turn the one-hot encoding "atomtypes" into a vector of diameters "smoothness_i":
-        # (N, 6)  -> (N, 1, 1)  (There are 6 atom types)
-        atomic_radii = torch.cuda.FloatTensor(
-            [170, 110, 152, 155, 180, 190], device=x.device
-        )
-        atomic_radii = atomic_radii / atomic_radii.min()
-        atomtype_radii = atomtypes * atomic_radii[None, :]  # n_atoms, n_atomtypes
-        # smoothness = atomtypes @ atomic_radii  # (N, 6) @ (6,) = (N,)
-        smoothness = torch.sum(
-            smoothness * atomtype_radii, dim=1, keepdim=False
-        )  # n_atoms, 1
-        smoothness_i = LazyTensor(smoothness[:, None, None])
-
-        # Compute an estimation of the mean smoothness in a neighborhood
-        # of each sampling point:
-        # density = (-D_ij.sqrt()).exp().sum(0).view(-1)  # (M,) local density of atoms
-        # smooth = (smoothness_i * (-D_ij.sqrt()).exp()).sum(0).view(-1)  # (M,)
-        # mean_smoothness = smooth / density  # (M,)
-
-        # soft_dists = -mean_smoothness * (
-        #    (-D_ij.sqrt() / smoothness_i).logsumexp(dim=0)
-        # ).view(-1)
-        mean_smoothness = (-D_ij.sqrt()).exp().sum(0)
-        mean_smoothness_j = LazyTensor(mean_smoothness[None, :, :])
-        mean_smoothness = (
-            smoothness_i * (-D_ij.sqrt()).exp() / mean_smoothness_j
-        )  # n_atoms, n_points, 1
-        mean_smoothness = mean_smoothness.sum(0).view(-1)
-        soft_dists = -mean_smoothness * (
-            (-D_ij.sqrt() / smoothness_i).logsumexp(dim=0)
-        ).view(-1)
+    if atomtypes is not None or atomflex is not None: #TODO: compute also flexibility
+        soft_dists = compute_soft_distances_type_flex(atomtypes, atomflex, D_ij, x, smoothness)
 
     else:
         soft_dists = -smoothness * ((-D_ij.sqrt() / smoothness).logsumexp(dim=0)).view(
@@ -208,6 +212,7 @@ def atoms_to_points_normals(
     atomtypes=None,
     sup_sampling=20,
     variance=0.1,
+    atomflex=None,
 ):
     """Turns a collection of atoms into an oriented point cloud.
 
@@ -264,6 +269,7 @@ def atoms_to_points_normals(
                 batch_z,
                 smoothness=smoothness,
                 atomtypes=atomtypes,
+                #atomflex=atomflex,
             )
             Loss = ((dists - T) ** 2).sum()
             g = torch.autograd.grad(Loss, z)[0]
@@ -287,6 +293,7 @@ def atoms_to_points_normals(
                 batch_z,
                 smoothness=smoothness,
                 atomtypes=atomtypes,
+                #atomflex=atomflex,
             )
             Loss = (1.0 * dists).sum()
             g = torch.autograd.grad(Loss, zz)[0]

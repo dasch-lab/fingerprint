@@ -119,7 +119,7 @@ class NormalizeChemFeatures(object):
         return "{}()".format(self.__class__.__name__)
 
 
-def load_protein_npy(pdb_id, data_dir, center=False, single_pdb=False):
+def load_protein_npy(pdb_id, data_dir, center=False, single_pdb=False, flexibility=False):
     """Loads a protein surface mesh and its features"""
 
     # Load the data, and read the connectivity information:
@@ -135,56 +135,12 @@ def load_protein_npy(pdb_id, data_dir, center=False, single_pdb=False):
     atom_coords = tensor(np.load(data_dir / (pdb_id + "_atomxyz.npy")))
     atom_types = tensor(np.load(data_dir / (pdb_id + "_atomtypes.npy")))
 
-    if center:
-        points = points - center_location
-        atom_coords = atom_coords - center_location
+    if flexibility:
+        atom_flex = tensor(np.load(data_dir / (pdb_id + "_atomflex.npy")))
+        atom_flex = atom_flex.reshape(-1, 1)
 
-    # Interface labels
-    iface_labels = (
-        None
-        if single_pdb
-        else tensor(np.load(data_dir / (pdb_id + "_iface_labels.npy")).reshape((-1, 1)))
-    )
-
-    # Features
-    chemical_features = (
-        None if single_pdb else tensor(np.load(data_dir / (pdb_id + "_features.npy")))
-    )
-
-    # Normals
-    normals = (
-        None if single_pdb else tensor(np.load(data_dir / (pdb_id + "_normals.npy")))
-    )
-
-    protein_data = Data(
-        xyz=points,
-        face=triangles,
-        chemical_features=chemical_features,
-        y=iface_labels,
-        normals=normals,
-        center_location=center_location,
-        num_nodes=None if single_pdb else points.shape[0],
-        atom_coords=atom_coords,
-        atom_types=atom_types,
-    )
-    return protein_data
-
-def load_protein_npy_flex(pdb_id, data_dir, center=False, single_pdb=False):
-    """Loads a protein surface mesh and its features"""
-
-    # Load the data, and read the connectivity information:
-    triangles = (
-        None
-        if single_pdb
-        else inttensor(np.load(data_dir / (pdb_id + "_triangles.npy"))).T
-    )
-    # Normalize the point cloud, as specified by the user:
-    points = None if single_pdb else tensor(np.load(data_dir / (pdb_id + "_xyz.npy")))
-    center_location = None if single_pdb else torch.mean(points, axis=0, keepdims=True)
-
-    atom_coords = tensor(np.load(data_dir / (pdb_id + "_atomxyz.npy")))
-    atom_types = tensor(np.load(data_dir / (pdb_id + "_atomtypes.npy")))
-    atom_flex = tensor(np.load(data_dir / (pdb_id + "_atomflex.npy")))
+    else:
+        atom_flex = None
 
     if center:
         points = points - center_location
@@ -244,6 +200,8 @@ class PairData(Data):
         atom_center2=None,
         rand_rot1=None,
         rand_rot2=None,
+        atom_flex1=None,
+        atom_flex2=None
     ):
         super().__init__()
         self.xyz_p1 = xyz_p1
@@ -267,6 +225,9 @@ class PairData(Data):
         self.atom_center2 = atom_center2
         self.rand_rot1 = rand_rot1
         self.rand_rot2 = rand_rot2
+        self.atom_flexibility1=atom_flex1
+        self.atom_flexibility2=atom_flex2
+     
 
     def __inc__(self, key, value, store):
         if key == "face_p1":
@@ -282,163 +243,86 @@ class PairData(Data):
         else:
             return 0
 
-class PairData_flex(Data):
-    def __init__(
-        self,
-        xyz_p1=None,
-        xyz_p2=None,
-        face_p1=None,
-        face_p2=None,
-        chemical_features_p1=None,
-        chemical_features_p2=None,
-        y_p1=None,
-        y_p2=None,
-        normals_p1=None,
-        normals_p2=None,
-        center_location_p1=None,
-        center_location_p2=None,
-        atom_coords_p1=None,
-        atom_coords_p2=None,
-        atom_types_p1=None,
-        atom_types_p2=None,
-        atom_center1=None,
-        atom_center2=None,
-        rand_rot1=None,
-        rand_rot2=None,
-        atom_flex_p1=None,
-        atom_flex_p2=None,
-    ):
-        super().__init__()
-        self.xyz_p1 = xyz_p1
-        self.xyz_p2 = xyz_p2
-        self.face_p1 = face_p1
-        self.face_p2 = face_p2
-
-        self.chemical_features_p1 = chemical_features_p1
-        self.chemical_features_p2 = chemical_features_p2
-        self.y_p1 = y_p1
-        self.y_p2 = y_p2
-        self.normals_p1 = normals_p1
-        self.normals_p2 = normals_p2
-        self.center_location_p1 = center_location_p1
-        self.center_location_p2 = center_location_p2
-        self.atom_coords_p1 = atom_coords_p1
-        self.atom_coords_p2 = atom_coords_p2
-        self.atom_types_p1 = atom_types_p1
-        self.atom_types_p2 = atom_types_p2
-        self.atom_center1 = atom_center1
-        self.atom_center2 = atom_center2
-        self.rand_rot1 = rand_rot1
-        self.rand_rot2 = rand_rot2
-        self.atom_flex_p1 = atom_flex_p1
-        self.atom_flex_p2 = atom_flex_p2
-
-    def __inc__(self, key, value, store):
-        if key == "face_p1":
-            return self.xyz_p1.size(0)
-        if key == "face_p2":
-            return self.xyz_p2.size(0)
-        else:
-            return super(PairData, self).__inc__(key, value)
-
-    def __cat_dim__(self, key, value, store):
-        if ("index" in key) or ("face" in key):
-            return 1
-        else:
-            return 0
-
-def load_protein_pair(pdb_id, data_dir,single_pdb=False):
+def load_protein_pair(pdb_id, data_dir,single_pdb=False, flexibility=False):
     """Loads a protein surface mesh and its features"""
     pspl = pdb_id.split("_")
     p1_id = pspl[0] + "_" + pspl[1]
     p2_id = pspl[0] + "_" + pspl[2]
 
-    #TODO: cambiare
     try:
-        p1 = load_protein_npy(p1_id, data_dir, center=False, single_pdb=single_pdb)
+        p1 = load_protein_npy(p1_id, data_dir, center=False, single_pdb=single_pdb, flexibility = flexibility)
     except FileNotFoundError:
         print(f"Issue with {p1_id}")
         raise  # Reraise the exception to propagate it further
     
     try:
-        p2 = load_protein_npy(p2_id, data_dir, center=False, single_pdb=single_pdb)
+        p2 = load_protein_npy(p2_id, data_dir, center=False, single_pdb=single_pdb, flexibility = flexibility)
     except FileNotFoundError:
         print(f"Issue with {p2_id}")
         raise
+
+    if flexibility:
+        try:
+            atom_flex_p1=p1["atom_flexibility"]
+            atom_flex_p2=p2["atom_flexibility"]
+        except FileNotFoundError:
+            print('notfound')
+    else:
+        atom_flex_p1=None
+        atom_flex_p2=None
+
 
     # pdist = ((p1['xyz'][:,None,:]-p2['xyz'][None,:,:])**2).sum(-1).sqrt()
     # pdist = pdist<2.0
     # y_p1 = (pdist.sum(1)>0).to(torch.float).reshape(-1,1)
     # y_p2 = (pdist.sum(0)>0).to(torch.float).reshape(-1,1)
-    y_p1 = p1["y"]
-    y_p2 = p2["y"]
-
-    protein_pair_data = PairData(
-        xyz_p1=p1["xyz"],
-        xyz_p2=p2["xyz"],
-        face_p1=p1["face"],
-        face_p2=p2["face"],
-        chemical_features_p1=p1["chemical_features"],
-        chemical_features_p2=p2["chemical_features"],
-        y_p1=y_p1,
-        y_p2=y_p2,
-        normals_p1=p1["normals"],
-        normals_p2=p2["normals"],
-        center_location_p1=p1["center_location"],
-        center_location_p2=p2["center_location"],
-        atom_coords_p1=p1["atom_coords"],
-        atom_coords_p2=p2["atom_coords"],
-        atom_types_p1=p1["atom_types"],
-        atom_types_p2=p2["atom_types"],
-    )
-    return protein_pair_data
-
-def load_protein_pair_flex(pdb_id, data_dir,single_pdb=False):
-    """Loads a protein surface mesh and its features"""
-    pspl = pdb_id.split("_")
-    p1_id = pspl[0] + "_" + pspl[1]
-    p2_id = pspl[0] + "_" + pspl[2]
-
-    #TODO: cambiare
     try:
-        p1 = load_protein_npy(p1_id, data_dir, center=False, single_pdb=single_pdb)
-    except FileNotFoundError:
-        print(f"Issue with {p1_id}")
-        raise  # Reraise the exception to propagate it further
-    
-    try:
-        p2 = load_protein_npy(p2_id, data_dir, center=False, single_pdb=single_pdb)
-    except FileNotFoundError:
-        print(f"Issue with {p2_id}")
-        raise
 
-    # pdist = ((p1['xyz'][:,None,:]-p2['xyz'][None,:,:])**2).sum(-1).sqrt()
-    # pdist = pdist<2.0
-    # y_p1 = (pdist.sum(1)>0).to(torch.float).reshape(-1,1)
-    # y_p2 = (pdist.sum(0)>0).to(torch.float).reshape(-1,1)
-    y_p1 = p1["y"]
-    y_p2 = p2["y"]
+        y_p1 = p1["y"]
+        y_p2 = p2["y"]
 
-    protein_pair_data = PairData(
-        xyz_p1=p1["xyz"],
-        xyz_p2=p2["xyz"],
-        face_p1=p1["face"],
-        face_p2=p2["face"],
-        chemical_features_p1=p1["chemical_features"],
-        chemical_features_p2=p2["chemical_features"],
-        y_p1=y_p1,
-        y_p2=y_p2,
-        normals_p1=p1["normals"],
-        normals_p2=p2["normals"],
-        center_location_p1=p1["center_location"],
-        center_location_p2=p2["center_location"],
-        atom_coords_p1=p1["atom_coords"],
-        atom_coords_p2=p2["atom_coords"],
-        atom_types_p1=p1["atom_types"],
-        atom_types_p2=p2["atom_types"],
-        atom_flex_p1=p1["atom_flex"],
-        atom_flex_p2=p2["atom_flex"],
-    )
+        protein_pair_data = PairData(
+            xyz_p1=p1["xyz"],
+            xyz_p2=p2["xyz"],
+            face_p1=p1["face"],
+            face_p2=p2["face"],
+            chemical_features_p1=p1["chemical_features"],
+            chemical_features_p2=p2["chemical_features"],
+            y_p1=y_p1,
+            y_p2=y_p2,
+            normals_p1=p1["normals"],
+            normals_p2=p2["normals"],
+            center_location_p1=p1["center_location"],
+            center_location_p2=p2["center_location"],
+            atom_coords_p1=p1["atom_coords"],
+            atom_coords_p2=p2["atom_coords"],
+            atom_types_p1=p1["atom_types"],
+            atom_types_p2=p2["atom_types"],
+            atom_flex1=atom_flex_p1,
+            atom_flex2=atom_flex_p2
+        )
+    except KeyError:
+        protein_pair_data = PairData(
+            xyz_p1=None,
+            xyz_p2=None,
+            face_p1=None,
+            face_p2=None,
+            chemical_features_p1=None,
+            chemical_features_p2=None,
+            y_p1=None,
+            y_p2=None,
+            normals_p1=None,
+            normals_p2=None,
+            center_location_p1=None,
+            center_location_p2=None,
+            atom_coords_p1=p1["atom_coords"],
+            atom_coords_p2=p2["atom_coords"],
+            atom_types_p1=p1["atom_types"],
+            atom_types_p2=p2["atom_types"],
+            atom_flex1=atom_flex_p1,
+            atom_flex2=atom_flex_p2
+        )
+
     return protein_pair_data
     
 
@@ -446,8 +330,9 @@ def load_protein_pair_flex(pdb_id, data_dir,single_pdb=False):
 class ProteinPairsSurfaces(InMemoryDataset):
     url = ""
 
-    def __init__(self, root, ppi=False, train=True, transform=None, pre_transform=None):
+    def __init__(self, root, ppi=False, train=True, transform=None, pre_transform=None, flexibility=False):
         self.ppi = ppi
+        self.flexibility = flexibility
         super(ProteinPairsSurfaces, self).__init__(root, transform, pre_transform)
         path = self.processed_paths[0] if train else self.processed_paths[1]
         self.data, self.slices = torch.load(path)
@@ -493,6 +378,7 @@ class ProteinPairsSurfaces(InMemoryDataset):
         #surf_dir = Path(self.root) / "raw" / "01-benchmark_surfaces"
         #protein_dir = Path(self.root) / "raw" / "01-benchmark_surfaces_npy"
         #lists_dir = Path('./lists')
+
         
         pdb_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_pdbs")
         surf_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_surfaces")
@@ -512,11 +398,15 @@ class ProteinPairsSurfaces(InMemoryDataset):
             convert_plys(surf_dir,protein_dir)
             convert_pdbs(pdb_dir,protein_dir)
 
-        with open(lists_dir / "training.txt") as f_tr, open(
-            lists_dir / "testing.txt"
-        ) as f_ts:
-            training_list = sorted(f_tr.read().splitlines())
-            testing_list = sorted(f_ts.read().splitlines())
+        try:
+            with open(lists_dir / "training.txt") as f_tr, open(
+                lists_dir / "testing.txt"
+            ) as f_ts:
+                training_list = sorted(f_tr.read().splitlines())
+                testing_list = sorted(f_ts.read().splitlines())
+        except FileNotFoundError:
+            pass
+
 
         with open(lists_dir / "training_ppi.txt") as f_tr, open(
             lists_dir / "testing_ppi.txt"
@@ -552,7 +442,7 @@ class ProteinPairsSurfaces(InMemoryDataset):
         training_pairs_data_ids = []
         for p in training_pairs_list:
             try:
-                protein_pair = load_protein_pair(p, protein_dir)
+                protein_pair = load_protein_pair(p, protein_dir, flexibility=self.flexibility)
             except FileNotFoundError:
                 continue
             training_pairs_data.append(protein_pair)
@@ -562,7 +452,7 @@ class ProteinPairsSurfaces(InMemoryDataset):
         testing_pairs_data_ids = []
         for p in testing_pairs_list:
             try:
-                protein_pair = load_protein_pair(p, protein_dir)
+                protein_pair = load_protein_pair(p, protein_dir, flexibility=self.flexibility)
             except FileNotFoundError:
                 continue
             testing_pairs_data.append(protein_pair)

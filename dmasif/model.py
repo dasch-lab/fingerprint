@@ -105,8 +105,8 @@ class Atom_embedding_MP(nn.Module):
     def __init__(self, args):
         super(Atom_embedding_MP, self).__init__()
         self.D = args.atom_dims
-        #self.k = 16
-        self.k = 17
+        self.k = 16
+        #self.k = 17
         self.n_layers = 3
         self.mlp = nn.ModuleList(
             [
@@ -124,7 +124,9 @@ class Atom_embedding_MP(nn.Module):
         self.relu = nn.LeakyReLU(negative_slope=0.2)
 
     def forward(self, x, y, y_atomtypes, x_batch, y_batch):
-        idx, dists = knn_atoms(x, y, x_batch, y_batch, k=self.k)  # N, 9, 7
+        
+        k = self.k
+        idx, dists = knn_atoms(x, y, x_batch, y_batch, k)  # N, 9, 7
         num_points = x.shape[0]
         num_dims = y_atomtypes.shape[-1]
 
@@ -132,9 +134,53 @@ class Atom_embedding_MP(nn.Module):
         for i in range(self.n_layers):
             features = y_atomtypes[idx.reshape(-1), :]
             features = torch.cat([features, dists.reshape(-1, 1)], dim=1)
-            features = features.view(num_points, self.k, num_dims + 1)
+            features = features.view(num_points, k, num_dims + 1)
             features = torch.cat(
-                [point_emb[:, None, :].repeat(1, self.k, 1), features], dim=-1
+                [point_emb[:, None, :].repeat(1, k, 1), features], dim=-1
+            )  # N, 8, 13
+
+            messages = self.mlp[i](features)  # N,8,6
+            messages = messages.sum(1)  # N,6
+            point_emb = point_emb + self.relu(self.norm[i](messages))
+
+        return point_emb
+    
+class Atom_embedding_flex_MP(nn.Module):
+    def __init__(self, args):
+        super(Atom_embedding_flex_MP, self).__init__()
+        self.D = 1
+        self.k = 16
+        #self.k = 17
+        self.n_layers = 3
+        self.mlp = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Linear(2 * self.D + 1, 2 * self.D + 1),
+                    nn.LeakyReLU(negative_slope=0.2),
+                    nn.Linear(2 * self.D + 1, self.D),
+                )
+                for i in range(self.n_layers)
+            ]
+        )
+        self.norm = nn.ModuleList(
+            [nn.GroupNorm(1, self.D) for i in range(self.n_layers)]
+        )
+        self.relu = nn.LeakyReLU(negative_slope=0.2)
+
+    def forward(self, x, y, y_atomtypes, x_batch, y_batch):
+        
+        k = self.k
+        idx, dists = knn_atoms(x, y, x_batch, y_batch, k)  # N, 9, 7
+        num_points = x.shape[0]
+        num_dims = y_atomtypes.shape[-1]
+
+        point_emb = torch.ones_like(x[:, 0])[:, None].repeat(1, num_dims)
+        for i in range(self.n_layers):
+            features = y_atomtypes[idx.reshape(-1), :]
+            features = torch.cat([features, dists.reshape(-1, 1)], dim=1)
+            features = features.view(num_points, k, num_dims + 1)
+            features = torch.cat(
+                [point_emb[:, None, :].repeat(1, k, 1), features], dim=-1
             )  # N, 8, 13
 
             messages = self.mlp[i](features)  # N,8,6
@@ -147,8 +193,8 @@ class Atom_Atom_embedding_MP(nn.Module):
     def __init__(self, args):
         super(Atom_Atom_embedding_MP, self).__init__()
         self.D = args.atom_dims
-        #self.k = 17
-        self.k = 18
+        self.k = 17
+        #self.k = 18
         self.n_layers = 3
 
         self.mlp = nn.ModuleList(
@@ -190,6 +236,53 @@ class Atom_Atom_embedding_MP(nn.Module):
 
         return out
 
+class Atom_Atom_embedding_flex_MP(nn.Module):
+    def __init__(self, args):
+        super(Atom_Atom_embedding_flex_MP, self).__init__()
+        self.D = 1
+        self.k = 17
+        #self.k = 18
+        self.n_layers = 3
+
+        self.mlp = nn.ModuleList(
+            [
+                nn.Sequential(
+                    nn.Linear(2 * self.D + 1, 2 * self.D + 1),
+                    nn.LeakyReLU(negative_slope=0.2),
+                    nn.Linear(2 * self.D + 1, self.D),
+                )
+                for i in range(self.n_layers)
+            ]
+        )
+
+        self.norm = nn.ModuleList(
+            [nn.GroupNorm(1, self.D) for i in range(self.n_layers)]
+        )
+        self.relu = nn.LeakyReLU(negative_slope=0.2)
+
+    def forward(self, x, y, y_atomtypes, x_batch, y_batch):
+        idx, dists = knn_atoms(x, y, x_batch, y_batch, k=self.k)  # N, 9, 7
+        idx = idx[:, 1:]  # Remove self
+        dists = dists[:, 1:]
+        k = self.k - 1
+        num_points = y_atomtypes.shape[0]
+
+        out = y_atomtypes
+        for i in range(self.n_layers):
+            _, num_dims = out.size()
+            features = out[idx.reshape(-1), :]
+            features = torch.cat([features, dists.reshape(-1, 1)], dim=1)
+            features = features.view(num_points, k, num_dims + 1)
+            features = torch.cat(
+                [out[:, None, :].repeat(1, k, 1), features], dim=-1
+            )  # N, 8, 13
+
+            messages = self.mlp[i](features)  # N,8,6
+            messages = messages.sum(1)  # N,6
+            out = out + self.relu(self.norm[i](messages))
+
+        return out
+
 class AtomNet_MP(nn.Module):
     def __init__(self, args):
         super(AtomNet_MP, self).__init__()
@@ -203,14 +296,26 @@ class AtomNet_MP(nn.Module):
 
         self.embed = Atom_embedding_MP(args)
         self.atom_atom = Atom_Atom_embedding_MP(args)
+        self.embed_flex = Atom_embedding_flex_MP(args)
+        self.atom_atom_flex = Atom_Atom_embedding_flex_MP(args)
 
-    def forward(self, xyz, atom_xyz, atomtypes, batch, atom_batch):
+    def forward(self, xyz, atom_xyz, atomtypes, batch, atom_batch, atomflex=None):
         # Run a DGCNN on the available information:
         atomtypes = self.transform_types(atomtypes)
         atomtypes = self.atom_atom(
             atom_xyz, atom_xyz, atomtypes, atom_batch, atom_batch
         )
         atomtypes = self.embed(xyz, atom_xyz, atomtypes, batch, atom_batch)
+
+        if atomflex is not None:
+            #atomflex = self.transform_types(atomflex)
+            atomflex = self.atom_atom_flex(
+                atom_xyz, atom_xyz, atomflex, atom_batch, atom_batch
+            )
+            atomflex = self.embed_flex(xyz, atom_xyz, atomflex, batch, atom_batch)
+            return atomtypes, atomflex
+
+
         return atomtypes
     
 
@@ -399,6 +504,7 @@ class dMaSIF(nn.Module):
                 atomtypes=P["atomtypes"],
                 resolution=self.args.resolution,
                 sup_sampling=self.args.sup_sampling,
+                atomflex = P["atomflex"],
             )
 
         # Estimate the curvatures using the triangles or the estimated normals:
@@ -411,9 +517,14 @@ class dMaSIF(nn.Module):
         )
 
         # Compute chemical features on-the-fly:
-        chemfeats = self.atomnet(
-            P["xyz"], P["atom_xyz"], P["atomtypes"], P["batch"], P["batch_atoms"]
-        )
+        if self.args.flexibility:
+            chemfeats, flexibility = self.atomnet(
+                P["xyz"], P["atom_xyz"], P["atomtypes"], P["batch"], P["batch_atoms"], P["atomflex"],
+            )
+        else:
+            chemfeats = self.atomnet(
+                P["xyz"], P["atom_xyz"], P["atomtypes"], P["batch"], P["batch_atoms"], P["atomflex"],
+            )
 
         if self.args.no_chem:
             chemfeats = 0.0 * chemfeats
@@ -421,7 +532,10 @@ class dMaSIF(nn.Module):
             P_curvatures = 0.0 * P_curvatures
 
         # Concatenate our features:
-        return torch.cat([P_curvatures, chemfeats], dim=1).contiguous()
+        if self.args.flexibility:
+            return torch.cat([P_curvatures, chemfeats, flexibility], dim=1).contiguous()
+        else:
+            return torch.cat([P_curvatures, chemfeats], dim=1).contiguous()
 
     def embed(self, P):
         """Embeds all points of a protein in a high-dimensional vector space."""
@@ -475,7 +589,7 @@ class dMaSIF(nn.Module):
 
         return conv_time, memory_usage
 
-    def preprocess_surface(self, P):
+    def preprocess_surface(self, P): #TODO aggiungere flexibility
         P["xyz"], P["normals"], P["batch"] = atoms_to_points_normals(
             P["atoms"],
             P["batch_atoms"],
@@ -483,6 +597,7 @@ class dMaSIF(nn.Module):
             resolution=self.args.resolution,
             sup_sampling=self.args.sup_sampling,
             distance=self.args.distance,
+            atomflex=P["atomflex"],
         )
         if P['mesh_labels'] is not None:
             project_iface_labels(P)

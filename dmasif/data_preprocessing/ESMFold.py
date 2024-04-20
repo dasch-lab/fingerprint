@@ -153,6 +153,8 @@ def init_model():
   esm_model = EsmForProteinFolding.from_pretrained("facebook/esmfold_v1", low_cpu_mem_usage=True)
   if is_cuda:
     esm_model = esm_model.cuda()
+  
+  esm_model.esm = esm_model.esm.half()
 
   # enable TensorFloat32 computation for a general speedup
   torch.backends.cuda.matmul.allow_tf32 = True

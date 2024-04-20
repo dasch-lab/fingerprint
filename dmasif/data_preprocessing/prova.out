@@ -1,24 +1,0 @@
-0it [00:00, ?it/s]/home/s.joubbi/miniconda3/envs/dmasif/lib/python3.8/site-packages/Bio/SeqIO/PdbIO.py:303: BiopythonParserWarning: 'HEADER' line not found; can't determine PDB ID.
-  warnings.warn(
-Some weights of EsmForProteinFolding were not initialized from the model checkpoint at facebook/esmfold_v1 and are newly initialized: ['esm.contact_head.regression.bias', 'esm.contact_head.regression.weight']
-You should probably TRAIN this model on a down-stream task to be able to use it for predictions and inference.
-1it [03:24, 204.57s/it]/home/s.joubbi/miniconda3/envs/dmasif/lib/python3.8/site-packages/Bio/SeqIO/PdbIO.py:303: BiopythonParserWarning: 'HEADER' line not found; can't determine PDB ID.
-  warnings.warn(
-2it [05:29, 180.76s/it]2it [05:29, 164.88s/it]
-Converting PDBs
-ASP
-
-A
-ASP
-
-B
-GLY
-
-GLN
-
-H
-GLN
-
-L
-SER
-

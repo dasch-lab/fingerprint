@@ -9,18 +9,31 @@ from subprocess import Popen, PIPE
 from pathlib import Path
 from convert_pdb2npy import load_structure_np
 import argparse
+from tqdm import tqdm
+
+
+def export_lib(new_path, name):
+    current_path = os.environ.get("PATH", "")
+    if current_path:
+        new_path = current_path + ":" + new_path
+    os.environ["PATH"] = new_path
+    print('Added path ' + name)
+
+export_lib("/disk1/fingerprint/librerie/reduce/build/reduce/reduce_src/", 'reduce')
+os.environ["REDUCE_HET_DICT"] = "/disk1/fingerprint/librerie/reduce/reduce_wwPDB_het_dict.txt"
 
 parser = argparse.ArgumentParser(description="Arguments")
 parser.add_argument(
     "--pdb", type=str,default='', help="PDB code along with chains to extract, example 1ABC_A_B", required=False
 )
 parser.add_argument(
-    "--pdb_list", type=str,default='', help="Path to a text file that includes a list of PDB codes along with chains, example 1ABC_A_B", required=False
+    "--pdb_list", type=str,default='/disk1/fingerprint/SAbDab_preparation/sabdab_summary_output_filtered.txt', help="Path to a text file that includes a list of PDB codes along with chains, example 1ABC_A_B", required=False
 )
 
 tmp_dir = Path('./tmp')
-pdb_dir = Path('./pdbs')
-npy_dir = Path('./npys')
+pdb_dir = Path('/disk1/fingerprint/SAbDab_preparation/all_structures/raw')
+npy_dir = Path('/disk1/fingerprint/SAbDab_preparation/all_structures/npys')
+out_dir = Path('/disk1/fingerprint/SAbDab_preparation/all_structures/protonate')
 
 PROTEIN_LETTERS = [x.upper() for x in IUPACData.protein_letters_3to1.keys()]
 
@@ -105,16 +118,19 @@ def protonate(in_pdb_file, out_pdb_file):
 
 
 
-def get_single(pdb_id: str,chains: list):
-    protonated_file = pdb_dir/f"{pdb_id}.pdb"
-    if not protonated_file.exists():
-        # Download pdb 
-        pdbl = PDBList()
-        pdb_filename = pdbl.retrieve_pdb_file(pdb_id, pdir=tmp_dir,file_format='pdb')
+def get_single(pdb_id: str, pdb_prot: str, chains: list):
+    pdb_filename = pdb_dir/f"{pdb_id}.pdb"
+    protonated_file = out_dir/f"{pdb_id}.pdb"
+
+    #if not protonated_file.exists():
+    #    # Download pdb 
+    #    pdbl = PDBList()
+    #    pdb_filename = pdbl.retrieve_pdb_file(pdb_id, pdir=tmp_dir,file_format='pdb')
 
         ##### Protonate with reduce, if hydrogens included.
         # - Always protonate as this is useful for charges. If necessary ignore hydrogens later.
-        protonate(pdb_filename, protonated_file)
+    
+    protonate(pdb_filename, protonated_file)
 
     pdb_filename = protonated_file
 
@@ -122,9 +138,14 @@ def get_single(pdb_id: str,chains: list):
     for chain in chains:
         out_filename = pdb_dir/f"{pdb_id}_{chain}.pdb"
         extractPDB(pdb_filename, str(out_filename), chain)
-        protein = load_structure_np(out_filename,center=False)
-        np.save(npy_dir / f"{pdb_id}_{chain}_atomxyz", protein["xyz"])
-        np.save(npy_dir / f"{pdb_id}_{chain}_atomtypes", protein["types"])
+        try:
+            protein = load_structure_np(out_filename,center=False)
+            np.save(npy_dir / f"{pdb_id}_{chain}_atomxyz.npy", protein["xyz"])
+            np.save(npy_dir / f"{pdb_id}_{chain}_atomtypes.npy", protein["types"])
+            np.save(npy_dir / f"{pdb_id}_{chain}_atomflex.npy", protein["flexibility"])
+        except Exception:
+            break
+
 
 if __name__ == '__main__':
     args = parser.parse_args()
@@ -132,15 +153,14 @@ if __name__ == '__main__':
         pdb_id = args.pdb.split('_')
         chains = pdb_id[1:]
         pdb_id = pdb_id[0]
-        get_single(pdb_id,chains)
-
+        get_single(pdb_id, out_dir, chains)
     elif args.pdb_list != '':
         with open(args.pdb_list) as f:
             pdb_list = f.read().splitlines()
-        for pdb_id in pdb_list:
+        for pdb_id in tqdm(pdb_list, desc='Processing PDBs', unit='pdb'):
            pdb_id = pdb_id.split('_')
            chains = pdb_id[1:]
            pdb_id = pdb_id[0]
-           get_single(pdb_id,chains)
+           get_single(pdb_id, out_dir, chains)
     else:
         raise ValueError('Must specify PDB or PDB list') 

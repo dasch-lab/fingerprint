@@ -4,16 +4,20 @@ from tqdm import tqdm
 from Bio.PDB import *
 from pathlib import Path
 from Bio import SeqIO
-from data_preprocessing.ESMFold import ESMModel, parse_pdb_b_factors_mean
-#from ESMFold import ESMModel, parse_pdb_b_factors_mean
-from data_preprocessing.PDB import change_res_id
-#from PDB import change_res_id
 import os
+
+try:
+    from data_preprocessing.ESMFold import ESMModel, parse_pdb_b_factors_mean
+    from data_preprocessing.PDB import change_res_id
+except Exception:
+    from ESMFold import ESMModel, parse_pdb_b_factors_mean
+    from PDB import change_res_id
 
 path_esm = "/disk1/fingerprint/provaESMFold"
 parser = PDBParser(QUIET=True)
 
 ele2num = {"C": 0, "H": 1, "O": 2, "N": 3, "S": 4, "SE": 5}
+count = 5
 
 def computeFlexibility(fname):
     fname = str(fname)
@@ -51,7 +55,13 @@ def load_structure_np(fname, center):
     fine = True
     for atom in atoms:
         coords.append(atom.get_coord())
-        types.append(ele2num[atom.element])
+        try:
+            types.append(ele2num[atom.element])
+        except KeyError:
+            count = count +1
+            ele2num[atom.element] = count
+            types.append(ele2num[atom.element])
+            print(ele2num)
         key = (atom.get_parent().get_parent().id, atom.get_parent().get_id()[1], atom.get_parent().get_resname())
         try:
             plddt.append(b_factor_dict[key])
