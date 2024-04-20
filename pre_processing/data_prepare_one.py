@@ -3,6 +3,7 @@ import subprocess
 import sys
 
 import os
+from tqdm import tqdm
 # Path to the directory you want to add to PATH
 
 
@@ -21,6 +22,8 @@ export_lib("/disk1/fingerprint/librerie/reduce/build/reduce/reduce_src/", 'reduc
 os.environ["REDUCE_HET_DICT"] = "/disk1/fingerprint/librerie/reduce/reduce_wwPDB_het_dict.txt"
 os.environ["MSMS_BIN"] = "/disk1/fingerprint/librerie/msms/msms.x86_64Linux2.2.6.1"
 os.environ["PDB2XYZRN"] = "/disk1/fingerprint/librerie/msms/pdb_to_xyzrn"
+pdb_path = "/disk1/fingerprint/SAbDab_preparation/all_structures"
+pdb_names = "/disk1/fingerprint/SAbDab_preparation/sabdab_summary_output_filtered.txt"
 
 
 def main():
@@ -30,25 +33,29 @@ def main():
 
     # Add masif_source to PYTHONPATH
     #os.environ['PYTHONPATH'] = os.pathsep.join([os.environ.get('PYTHONPATH', ''), masif_source])
-    name = '4FQI_AB_HL'
+    with open(pdb_names, 'r') as f:
+        pdb_name_list = f.read().splitlines()
+    
 
-    # Extract PDB_ID, CHAIN1, and CHAIN2 from the input argument
-    #pdb_id, chain1, chain2 = sys.argv[1].split('_')
-    pdb_id, chain1, chain2 = name.split('_')
+    for name in tqdm(pdb_name_list):
 
-    # Load environment if necessary
+        # Extract PDB_ID, CHAIN1, and CHAIN2 from the input argument
+        #pdb_id, chain1, chain2 = sys.argv[1].split('_')
+        pdb_id, chain1, chain2 = name.split('_')
 
-    # Execute the Python scripts
-    subprocess.run(['python', os.path.join(masif_source, '00-pdb_download.py'), name])
-    print('Done 00-pdb_download.py')
-    subprocess.run(['python', os.path.join(masif_source, '01-pdb_extract_and_triangulate.py'), f'{pdb_id}_{chain1}'])
-    print(f'Done 01-pdb_extract_and_triangulate.py for {pdb_id}_{chain1}')
-    subprocess.run(['python', os.path.join(masif_source, '01-pdb_extract_and_triangulate.py'), f'{pdb_id}_{chain2}'])
-    print(f'Don 01-pdb_extract_and_triangulate.py for {pdb_id}_{chain1}')
-    subprocess.run(['python', os.path.join(masif_source, '04-masif_precompute.py'), 'masif_site', name])
-    print(f'Done 04-masif_precompute.py for masif_site')
-    subprocess.run(['python', os.path.join(masif_source, '04-masif_precompute.py'), 'masif_ppi_search', name])
-    print(f'Done 04-masif_precompute.py for masif_ppi_search')
+        # Load environment if necessary
+
+        # Execute the Python scripts
+        subprocess.run(['python', os.path.join(masif_source, '00-pdb_download.py'), name])
+        print('Done 00-pdb_download.py')
+        subprocess.run(['python', os.path.join(masif_source, '01-pdb_extract_and_triangulate.py'), f'{pdb_id}_{chain1}'])
+        print(f'Done 01-pdb_extract_and_triangulate.py for {pdb_id}_{chain1}')
+        subprocess.run(['python', os.path.join(masif_source, '01-pdb_extract_and_triangulate.py'), f'{pdb_id}_{chain2}'])
+        print(f'Don 01-pdb_extract_and_triangulate.py for {pdb_id}_{chain1}')
+        #subprocess.run(['python', os.path.join(masif_source, '04-masif_precompute.py'), 'masif_site', name])
+        #print(f'Done 04-masif_precompute.py for masif_site')
+        subprocess.run(['python', os.path.join(masif_source, '04-masif_precompute.py'), 'masif_ppi_search', name])
+        print(f'Done 04-masif_precompute.py for masif_ppi_search')
 
 if __name__ == "__main__":
     main()

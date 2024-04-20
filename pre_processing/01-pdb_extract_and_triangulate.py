@@ -73,9 +73,10 @@ if masif_opts['use_hbond']:
 if masif_opts['use_hphob']:
     vertex_hphobicity = computeHydrophobicity(names1)
 
-
+"""
 if masif_opts['use_flexibility']:
     vertex_flexibility = computeFlexibility(out_filename1, vertices1, names1)
+"""
 
 # If protonate = false, recompute MSMS of surface, but without hydrogens (set radius of hydrogens to 0).
 vertices2 = vertices1

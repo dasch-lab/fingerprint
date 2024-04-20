@@ -13,7 +13,7 @@ from helper import numpy, diagonal_ranges
 import time
 
 
-def process_single(protein_pair, chain_idx=1):
+def process_single(protein_pair, chain_idx=1, flex = False):
     """Turn the PyG data object into a dict."""
     #print(">>>", type(protein_pair))
     P = {}
@@ -41,7 +41,8 @@ def process_single(protein_pair, chain_idx=1):
         # Chemical features: atom coordinates and types.
         P["atom_xyz"] = protein_pair.atom_coords_p1
         P["atomtypes"] = protein_pair.atom_types_p1
-        P["atomflex"] = protein_pair.atom_flexibility1 
+        if flex:  
+            P["atomflex"] = protein_pair.atom_flexibility1 
 
         P["xyz"] = protein_pair.gen_xyz_p1 if preprocessed else None
         P["normals"] = protein_pair.gen_normals_p1 if preprocessed else None
@@ -67,7 +68,8 @@ def process_single(protein_pair, chain_idx=1):
         # Chemical features: atom coordinates and types.
         P["atom_xyz"] = protein_pair.atom_coords_p2
         P["atomtypes"] = protein_pair.atom_types_p2
-        P["atomflex"] = protein_pair.atom_flexibility2
+        if flex:
+            P["atomflex"] = protein_pair.atom_flexibility2
 
         P["xyz"] = protein_pair.gen_xyz_p2 if preprocessed else None
         P["normals"] = protein_pair.gen_normals_p2 if preprocessed else None
@@ -124,19 +126,19 @@ def project_iface_labels(P, threshold=2.0):
     P["labels"] = query_labels
 
 
-def process(args, protein_pair, net):
-    P1 = process_single(protein_pair, chain_idx=1)
+def process(args, protein_pair, net, flex):
+    P1 = process_single(protein_pair, chain_idx=1, flex=flex)
     # if not "gen_xyz_p1" in protein_pair.keys:
     if not hasattr(protein_pair, "gen_xyz_p1"):
-        net.preprocess_surface(P1)
+        net.preprocess_surface(P1, flex)
         #if P1["mesh_labels"] is not None:
         #    project_iface_labels(P1)
     P2 = None
     if not args.single_protein:
-        P2 = process_single(protein_pair, chain_idx=2)
+        P2 = process_single(protein_pair, chain_idx=2, flex=flex)
         #if not "gen_xyz_p2" in protein_pair.keys:
         if not hasattr(protein_pair, "gen_xyz_p1"):
-            net.preprocess_surface(P2)
+            net.preprocess_surface(P2, flex)
             #if P2["mesh_labels"] is not None:
             #    project_iface_labels(P2)
 
@@ -226,7 +228,7 @@ def compute_loss(args, P1, P2, n_points_sample=16):
     return loss, preds_concat, labels_concat
 
 
-def extract_single(P_batch, number):
+def extract_single(P_batch, number, flex=False):
     P = {}  # First and second proteins
     batch = P_batch["batch"] == number
     batch_atoms = P_batch["batch_atoms"] == number
@@ -248,7 +250,8 @@ def extract_single(P_batch, number):
     # Chemical features: atom coordinates and types.
     P["atom_xyz"] = P_batch["atom_xyz"][batch_atoms]
     P["atomtypes"] = P_batch["atomtypes"][batch_atoms]
-    P["atomflex"] = P_batch["atomflex"][batch_atoms]
+    if flex:
+        P["atomflex"] = P_batch["atomflex"][batch_atoms]
 
     return P
 
@@ -263,6 +266,7 @@ def iterate(
     pdb_ids=None,
     summary_writer=None,
     epoch_number=None,
+    flex = False
 ):
     """Goes through one epoch of the dataset, returns information for Tensorboard."""
 
@@ -295,7 +299,7 @@ def iterate(
         # Generate the surface:
         torch.cuda.synchronize()
         surface_time = time.time()
-        P1_batch, P2_batch = process(args, protein_pair, net)
+        P1_batch, P2_batch = process(args, protein_pair, net, flex)
         torch.cuda.synchronize()
         surface_time = time.time() - surface_time
 
@@ -303,8 +307,8 @@ def iterate(
             torch.cuda.synchronize()
             iteration_time = time.time()
 
-            P1 = extract_single(P1_batch, protein_it)
-            P2 = None if args.single_protein else extract_single(P2_batch, protein_it)
+            P1 = extract_single(P1_batch, protein_it, flex)
+            P2 = None if args.single_protein else extract_single(P2_batch, protein_it, flex)
 
 
             if args.random_rotation:

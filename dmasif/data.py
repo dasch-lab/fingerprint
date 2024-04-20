@@ -163,18 +163,31 @@ def load_protein_npy(pdb_id, data_dir, center=False, single_pdb=False, flexibili
         None if single_pdb else tensor(np.load(data_dir / (pdb_id + "_normals.npy")))
     )
 
-    protein_data = Data(
-        xyz=points,
-        face=triangles,
-        chemical_features=chemical_features,
-        y=iface_labels,
-        normals=normals,
-        center_location=center_location,
-        num_nodes=None if single_pdb else points.shape[0],
-        atom_coords=atom_coords,
-        atom_types=atom_types,
-        atom_flexibility = atom_flex,
-    )
+    if atom_flex is None:
+        protein_data = Data(
+            xyz=points,
+            face=triangles,
+            chemical_features=chemical_features,
+            y=iface_labels,
+            normals=normals,
+            center_location=center_location,
+            num_nodes=None if single_pdb else points.shape[0],
+            atom_coords=atom_coords,
+            atom_types=atom_types,
+        )
+    else:
+        protein_data = Data(
+            xyz=points,
+            face=triangles,
+            chemical_features=chemical_features,
+            y=iface_labels,
+            normals=normals,
+            center_location=center_location,
+            num_nodes=None if single_pdb else points.shape[0],
+            atom_coords=atom_coords,
+            atom_types=atom_types,
+            atom_flexibility = atom_flex,
+        )
     return protein_data
 
 class PairData(Data):
@@ -225,8 +238,9 @@ class PairData(Data):
         self.atom_center2 = atom_center2
         self.rand_rot1 = rand_rot1
         self.rand_rot2 = rand_rot2
-        self.atom_flexibility1=atom_flex1
-        self.atom_flexibility2=atom_flex2
+        if atom_flex1 is not None and atom_flex2 is not None:
+            self.atom_flexibility1=atom_flex1
+            self.atom_flexibility2=atom_flex2
      
 
     def __inc__(self, key, value, store):
@@ -276,7 +290,52 @@ def load_protein_pair(pdb_id, data_dir,single_pdb=False, flexibility=False):
     # pdist = pdist<2.0
     # y_p1 = (pdist.sum(1)>0).to(torch.float).reshape(-1,1)
     # y_p2 = (pdist.sum(0)>0).to(torch.float).reshape(-1,1)
-    try:
+
+    y_p1 = p1["y"]
+    y_p2 = p2["y"]
+
+
+    if atom_flex_p1 is None and atom_flex_p2 is None:
+        protein_pair_data = PairData(
+            xyz_p1=p1["xyz"],
+            xyz_p2=p2["xyz"],
+            face_p1=p1["face"],
+            face_p2=p2["face"],
+            chemical_features_p1=p1["chemical_features"],
+            chemical_features_p2=p2["chemical_features"],
+            y_p1=y_p1,
+            y_p2=y_p2,
+            normals_p1=p1["normals"],
+            normals_p2=p2["normals"],
+            center_location_p1=p1["center_location"],
+            center_location_p2=p2["center_location"],
+            atom_coords_p1=p1["atom_coords"],
+            atom_coords_p2=p2["atom_coords"],
+            atom_types_p1=p1["atom_types"],
+            atom_types_p2=p2["atom_types"],
+        )
+    else:
+        protein_pair_data = PairData(
+            xyz_p1=p1["xyz"],
+            xyz_p2=p2["xyz"],
+            face_p1=p1["face"],
+            face_p2=p2["face"],
+            chemical_features_p1=p1["chemical_features"],
+            chemical_features_p2=p2["chemical_features"],
+            y_p1=y_p1,
+            y_p2=y_p2,
+            normals_p1=p1["normals"],
+            normals_p2=p2["normals"],
+            center_location_p1=p1["center_location"],
+            center_location_p2=p2["center_location"],
+            atom_coords_p1=p1["atom_coords"],
+            atom_coords_p2=p2["atom_coords"],
+            atom_types_p1=p1["atom_types"],
+            atom_types_p2=p2["atom_types"],
+            atom_flex1=atom_flex_p1,
+            atom_flex2=atom_flex_p2
+        )
+    """ try:
 
         y_p1 = p1["y"]
         y_p2 = p2["y"]
@@ -321,7 +380,7 @@ def load_protein_pair(pdb_id, data_dir,single_pdb=False, flexibility=False):
             atom_types_p2=p2["atom_types"],
             atom_flex1=atom_flex_p1,
             atom_flex2=atom_flex_p2
-        )
+        )"""
 
     return protein_pair_data
     

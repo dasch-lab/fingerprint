@@ -48,9 +48,14 @@ elif args.pdb_list != "":
     test_dataset = [load_protein_pair(pdb, single_data_dir,single_pdb=True) for pdb in pdb_list]
     test_pdb_ids = [pdb for pdb in pdb_list]
 else:
-    test_dataset = ProteinPairsSurfaces(
-        "surface_data", train=False, ppi=args.search, transform=transformations, flexibility = args.flexibility
-    )
+    if args.flexibility:
+        test_dataset = ProteinPairsSurfaces(
+            "surface_data", train=False, ppi=args.search, transform=transformations, flexibility = args.flexibility
+        )
+    else:
+        test_dataset = ProteinPairsSurfaces(
+            "surface_data", train=False, ppi=args.search, transform=transformations,
+        )
     test_pdb_ids = (
         np.load("surface_data/processed/testing_pairs_data_ids.npy")
         if args.site
@@ -88,6 +93,7 @@ info = iterate(
     test=True,
     save_path=save_predictions_path,
     pdb_ids=test_pdb_ids,
+    flex = args.flexibility
 )
 
 print(info)

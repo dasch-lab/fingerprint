@@ -157,7 +157,7 @@ if __name__ == '__main__':
     elif args.pdb_list != '':
         with open(args.pdb_list) as f:
             pdb_list = f.read().splitlines()
-        for pdb_id in tqdm(pdb_list, desc='Processing PDBs', unit='pdb'):
+        for pdb_id in tqdm(pdb_list[5657:], desc='Processing PDBs', unit='pdb'):
            pdb_id = pdb_id.split('_')
            chains = pdb_id[1:]
            pdb_id = pdb_id[0]

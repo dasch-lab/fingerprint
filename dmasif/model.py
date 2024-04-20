@@ -296,6 +296,28 @@ class AtomNet_MP(nn.Module):
 
         self.embed = Atom_embedding_MP(args)
         self.atom_atom = Atom_Atom_embedding_MP(args)
+
+    def forward(self, xyz, atom_xyz, atomtypes, batch, atom_batch, atomflex=None):
+        # Run a DGCNN on the available information:
+        atomtypes = self.transform_types(atomtypes)
+        atomtypes = self.atom_atom(
+            atom_xyz, atom_xyz, atomtypes, atom_batch, atom_batch
+        )
+        atomtypes = self.embed(xyz, atom_xyz, atomtypes, batch, atom_batch)
+
+        return atomtypes
+
+class AtomNet_MP_flex(nn.Module):
+    def __init__(self, args):
+        super(AtomNet_MP, self).__init__()
+        self.args = args
+
+        self.transform_types = nn.Sequential(
+            nn.Linear(args.atom_dims, args.atom_dims),
+            nn.LeakyReLU(negative_slope=0.2),
+            nn.Linear(args.atom_dims, args.atom_dims),
+        )
+        
         self.embed_flex = Atom_embedding_flex_MP(args)
         self.atom_atom_flex = Atom_Atom_embedding_flex_MP(args)
 
@@ -307,16 +329,12 @@ class AtomNet_MP(nn.Module):
         )
         atomtypes = self.embed(xyz, atom_xyz, atomtypes, batch, atom_batch)
 
-        if atomflex is not None:
-            #atomflex = self.transform_types(atomflex)
-            atomflex = self.atom_atom_flex(
-                atom_xyz, atom_xyz, atomflex, atom_batch, atom_batch
-            )
-            atomflex = self.embed_flex(xyz, atom_xyz, atomflex, batch, atom_batch)
-            return atomtypes, atomflex
-
-
-        return atomtypes
+        #atomflex = self.transform_types(atomflex)
+        atomflex = self.atom_atom_flex(
+            atom_xyz, atom_xyz, atomflex, atom_batch, atom_batch
+        )
+        atomflex = self.embed_flex(xyz, atom_xyz, atomflex, batch, atom_batch)
+        return atomtypes, atomflex
     
 
 class AtomNet_MP_flex(nn.Module):
@@ -436,7 +454,10 @@ class dMaSIF(nn.Module):
         H = args.post_units
 
         # Computes chemical features
-        self.atomnet = AtomNet_MP(args)
+        if args.flex:
+            pass
+        else:
+            self.atomnet = AtomNet_MP(args)
         self.dropout = nn.Dropout(args.dropout)
 
         if args.embedding_layer == "dMaSIF":
@@ -504,7 +525,7 @@ class dMaSIF(nn.Module):
                 atomtypes=P["atomtypes"],
                 resolution=self.args.resolution,
                 sup_sampling=self.args.sup_sampling,
-                atomflex = P["atomflex"],
+                atomflex = P["atomflex"] if self.args.flexibility else None,
             )
 
         # Estimate the curvatures using the triangles or the estimated normals:
@@ -523,7 +544,7 @@ class dMaSIF(nn.Module):
             )
         else:
             chemfeats = self.atomnet(
-                P["xyz"], P["atom_xyz"], P["atomtypes"], P["batch"], P["batch_atoms"], P["atomflex"],
+                P["xyz"], P["atom_xyz"], P["atomtypes"], P["batch"], P["batch_atoms"],
             )
 
         if self.args.no_chem:
@@ -589,7 +610,7 @@ class dMaSIF(nn.Module):
 
         return conv_time, memory_usage
 
-    def preprocess_surface(self, P): #TODO aggiungere flexibility
+    def preprocess_surface(self, P, flex):
         P["xyz"], P["normals"], P["batch"] = atoms_to_points_normals(
             P["atoms"],
             P["batch_atoms"],
@@ -597,7 +618,7 @@ class dMaSIF(nn.Module):
             resolution=self.args.resolution,
             sup_sampling=self.args.sup_sampling,
             distance=self.args.distance,
-            atomflex=P["atomflex"],
+            atomflex=P["atomflex"] if flex else None,
         )
         if P['mesh_labels'] is not None:
             project_iface_labels(P)

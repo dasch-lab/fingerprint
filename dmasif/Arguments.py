@@ -4,7 +4,7 @@ parser = argparse.ArgumentParser(description="Network parameters")
 
 # Main parameters
 parser.add_argument(
-    "--experiment_name", type=str, help="Name of experiment", default="flexibility"
+    "--experiment_name", type=str, help="Name of experiment", default="flexibility_pdb"
 )
 parser.add_argument(
     "--antibody", type=bool, help="Training on Antibodies", default=True

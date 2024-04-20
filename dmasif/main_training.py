@@ -75,9 +75,14 @@ print(f'Training data: {train_nsamples}')
 print(f'Validation data: {val_nsamples}')
 
 # Load the test dataset:
-test_dataset = ProteinPairsSurfaces(
-    "surface_data", ppi=args.search, train=False, transform=transformations
-)
+if args.flexibility:
+    test_dataset = ProteinPairsSurfaces(
+        "surface_data", ppi=args.search, train=False, transform=transformations, flexibility = args.flexibility
+    )
+else:
+    test_dataset = ProteinPairsSurfaces(
+        "surface_data", ppi=args.search, train=False, transform=transformations,
+    )
 test_dataset = [data for data in test_dataset if iface_valid_filter(data)]
 print(f'Test data: {len(test_dataset)}')
 test_loader = DataLoader(
@@ -133,6 +138,7 @@ for i in range(starting_epoch, args.n_epochs):
             test=test,
             summary_writer=writer,
             epoch_number=i,
+            flex = args.flexibility,
         )
 
         # Write down the results using a TensorBoard writer:
