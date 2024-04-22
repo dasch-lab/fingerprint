@@ -5,6 +5,7 @@ masif_opts = {}
 masif_opts["raw_pdb_dir"] = "data_preparation/00-raw_pdbs/"
 masif_opts["pdb_chain_dir"] = "data_preparation/01-benchmark_pdbs/"
 masif_opts["ply_chain_dir"] = "data_preparation/01-benchmark_surfaces/"
+masif_opts["pdb_folder"] = "/disk1/fingerprint/SAbDab_preparation/all_structures/raw"
 #masif_opts["tmp_dir"] = tempfile.gettempdir()
 masif_opts["tmp_dir"] = "/disk1/fingerprint/tmp"
 masif_opts["ply_file_template"] = masif_opts["ply_chain_dir"] + "/{}_{}.ply"

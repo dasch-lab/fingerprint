@@ -49,3 +49,4 @@ def convert_plys(ply_dir, npy_dir):
         np.save(npy_dir / (p.stem + "_iface_labels.npy"), protein["iface_labels"])
         np.save(npy_dir / (p.stem + "_normals.npy"), protein["normals"])
 
+#convert_plys(Path("/disk1/fingerprint/data_preparation/01-benchmark_surfaces"), Path("/disk1/fingerprint/SAbDab_preparation/all_structures/npys_tot"))

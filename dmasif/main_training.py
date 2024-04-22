@@ -11,6 +11,7 @@ from pathlib import Path
 from data import ProteinPairsSurfaces, CenterPairAtoms
 from data import RandomRotationPairAtoms, NormalizeChemFeatures, iface_valid_filter
 from model import dMaSIF
+#from model_copy import dMaSIF_old
 from data_iteration import iterate, iterate_surface_precompute
 from helper import *
 from Arguments import parser
@@ -30,10 +31,14 @@ torch.manual_seed(args.seed)
 torch.cuda.manual_seed_all(args.seed)
 np.random.seed(args.seed)
 
+print(f'Flexibility: {args.flexibility} | Antibody: {args.antibody}')
+
 # Create the model, with a warm restart if applicable:
 if args.flexibility:
     args.in_channels = args.in_channels + 1
 net = dMaSIF(args)
+#else:
+#    net = dMaSIF_old(args)
 net.to(args.device)
 
 # We load the train and test datasets.
@@ -49,14 +54,16 @@ transformations = (
 batch_vars = ["xyz_p1", "xyz_p2", "atom_coords_p1", "atom_coords_p2"]
 # Load the train dataset:
 
-if args.flexibility:
-    train_dataset = ProteinPairsSurfaces(
-        "surface_data", ppi=args.search, train=True, transform=transformations, flexibility = args.flexibility
-    )
+if args.antibody and args.mix:
+    folder_data = "surface_data_ab"
+elif args.antibody:
+    folder_data = "surface_data_ab_pp"
 else:
-    train_dataset = ProteinPairsSurfaces(
-        "surface_data", ppi=args.search, train=True, transform=transformations
-    )
+    folder_data = "surface_data"
+
+train_dataset = ProteinPairsSurfaces(
+            folder_data, ppi=args.search, train=True, transform=transformations, flexibility = args.flexibility, antibody = args.antibody, mix = args.mix
+        )
 
 train_dataset = [data for data in train_dataset if iface_valid_filter(data)]
 train_loader = DataLoader(
@@ -75,15 +82,12 @@ train_dataset, val_dataset = random_split(
 print(f'Training data: {train_nsamples}')
 print(f'Validation data: {val_nsamples}')
 
+test_dataset = ProteinPairsSurfaces(
+            folder_data, ppi=args.search, train=False, transform=transformations, flexibility = args.flexibility, mix = args.mix
+        )
+
+
 # Load the test dataset:
-if args.flexibility:
-    test_dataset = ProteinPairsSurfaces(
-        "surface_data", ppi=args.search, train=False, transform=transformations, flexibility = args.flexibility
-    )
-else:
-    test_dataset = ProteinPairsSurfaces(
-        "surface_data", ppi=args.search, train=False, transform=transformations,
-    )
 test_dataset = [data for data in test_dataset if iface_valid_filter(data)]
 print(f'Test data: {len(test_dataset)}')
 test_loader = DataLoader(

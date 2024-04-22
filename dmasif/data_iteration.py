@@ -4,7 +4,7 @@ from helper import *
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.autograd.profiler as profiler
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import roc_auc_score, average_precision_score
 from pathlib import Path
 import math
 from tqdm import tqdm
@@ -402,6 +402,7 @@ def iterate(
                         np.rint(numpy(sampled_labels.view(-1))),
                         numpy(sampled_preds.view(-1)),
                     )
+                    #TODO Calcolare anche average_precision_score(np.rint(numpy(sampled_labels.view(-1))),numpy(sampled_preds.view(-1)),)
                 else:
                     roc_auc = 0.0
             except Exception as e:

@@ -5,6 +5,9 @@ import sys
 import os
 from tqdm import tqdm
 import multiprocessing
+import warnings
+warnings.filterwarnings("ignore")
+warnings.filterwarnings("ignore", category=FutureWarning)
 
 # Path to the directory you want to add to PATH
 def export_lib(new_path, name):
@@ -23,7 +26,7 @@ os.environ["REDUCE_HET_DICT"] = "/disk1/fingerprint/librerie/reduce/reduce_wwPDB
 os.environ["MSMS_BIN"] = "/disk1/fingerprint/librerie/msms/msms.x86_64Linux2.2.6.1"
 os.environ["PDB2XYZRN"] = "/disk1/fingerprint/librerie/msms/pdb_to_xyzrn"
 pdb_path = "/disk1/fingerprint/SAbDab_preparation/all_structures"
-pdb_names = "/disk1/fingerprint/SAbDab_preparation/sabdab_summary_output_filtered.txt"
+pdb_names = "/disk1/fingerprint/SAbDab_preparation/SAbDab_30_resolution.txt"
 
 folder_path = "/disk1/fingerprint/provaESMFold"
 precomputation = "/disk1/fingerprint/data_preparation/04b-precomputation_12A/precomputation/"
@@ -67,7 +70,7 @@ def main():
     with open(pdb_names, 'r') as f:
         pdb_name_list = f.read().splitlines()
     
-    pdb_name_list = pdb_name_list[8967:]
+    pdb_name_list = pdb_name_list[4209:]
 
     for name in tqdm(pdb_name_list):
 
@@ -80,21 +83,35 @@ def main():
 
             # Load environment if necessary
 
-            # Execute the Python scripts
-            subprocess.run(['python', os.path.join(masif_source, '00-pdb_download.py'), name])
-            print('Done 00-pdb_download.py')
-            subprocess.run(['python', os.path.join(masif_source, '01-pdb_extract_and_triangulate.py'), f'{pdb_id}_{chain1}'])
-            print(f'Done 01-pdb_extract_and_triangulate.py for {pdb_id}_{chain1}')
-            subprocess.run(['python', os.path.join(masif_source, '01-pdb_extract_and_triangulate.py'), f'{pdb_id}_{chain2}'])
-            print(f'Don 01-pdb_extract_and_triangulate.py for {pdb_id}_{chain1}')
-            #subprocess.run(['python', os.path.join(masif_source, '04-masif_precompute.py'), 'masif_site', name])
-            #print(f'Done 04-masif_precompute.py for masif_site')
-            subprocess.run(['python', os.path.join(masif_source, '04-masif_precompute.py'), 'masif_ppi_search', name])
-            print(f'Done 04-masif_precompute.py for masif_ppi_search')
+            try:
+                # Execute the Python scripts
+                subprocess.run(['python', os.path.join(masif_source, '00-pdb_download.py'), name])
+                print('Done 00-pdb_download.py')
+                subprocess.run(['python', os.path.join(masif_source, '01-pdb_extract_and_triangulate.py'), f'{pdb_id}_{chain1}'])
+                print(f'Done 01-pdb_extract_and_triangulate.py for {pdb_id}_{chain1}')
+                subprocess.run(['python', os.path.join(masif_source, '01-pdb_extract_and_triangulate.py'), f'{pdb_id}_{chain2}'])
+                print(f'Don 01-pdb_extract_and_triangulate.py for {pdb_id}_{chain1}')
+                #subprocess.run(['python', os.path.join(masif_source, '04-masif_precompute.py'), 'masif_site', name])
+                #print(f'Done 04-masif_precompute.py for masif_site')
+                subprocess.run(['python', os.path.join(masif_source, '04-masif_precompute.py'), 'masif_ppi_search', name])
+                print(f'Done 04-masif_precompute.py for masif_ppi_search')
+                #remove_files_raw("/disk1/fingerprint/data_preparation/00-raw_pdbs", pdb_id)
+                #remove_files("/disk1/fingerprint/data_preparation/01-benchmark_pdbs")
+                #remove_files("/disk1/fingerprint/tmp")
+                remove_files_raw("/disk1/fingerprint/data_preparation/00-raw_pdbs", pdb_id)
+                remove_files_raw("/disk1/fingerprint/tmp", pdb_id)
+                remove_files_raw("/disk1/fingerprint/tmp", "msms")
+                remove_files_raw("/disk1/fingerprint/data_preparation/01-benchmark_pdbs", pdb_id)
+            except Exception:
+                print(f'Issue with {name}')
+                remove_files_raw("/disk1/fingerprint/data_preparation/00-raw_pdbs", pdb_id)
+                remove_files_raw("/disk1/fingerprint/tmp", pdb_id)
+                remove_files_raw("/disk1/fingerprint/data_preparation/01-benchmark_pdbs", pdb_id)
+        else:
+            print(f'Already processed')
 
-        remove_files("/disk1/fingerprint/data_preparation/01-benchmark_pdbs")
-        remove_files("/disk1/fingerprint/tmp")
-        remove_files_raw("/disk1/fingerprint/data_preparation/00-raw_pdbs", pdb_id)
+        
 
 if __name__ == "__main__":
     main()
+    warnings.filterwarnings("default")

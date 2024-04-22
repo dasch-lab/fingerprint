@@ -195,7 +195,6 @@ class ESMModel():
         
     @staticmethod
     def convert_outputs_to_pdb(outputs, chain):
-        # Convert tensors to NumPy arrays on CPU
         final_atom_positions = atom14_to_atom37(outputs["positions"][-1], outputs)
         outputs = {k: v.to("cpu").numpy() for k, v in outputs.items()}
         final_atom_positions = final_atom_positions.cpu().numpy()

@@ -4,13 +4,16 @@ parser = argparse.ArgumentParser(description="Network parameters")
 
 # Main parameters
 parser.add_argument(
-    "--experiment_name", type=str, help="Name of experiment", default="flexibility_pdb"
+    "--experiment_name", type=str, help="Name of experiment", default="dmasif_pred_Ab_flex_finetuning"
 )
 parser.add_argument(
-    "--antibody", type=bool, help="Training on Antibodies", default=True
+    "--antibody", type=bool, help="Training on Antibodies", default=False
 )
 parser.add_argument(
     "--flexibility", type=bool, help="Use flexibility", default=True
+)
+parser.add_argument(
+    "--mix", type=bool, help="Protein and non-protein targets", default=False
 )
 parser.add_argument(
     "--use_mesh", type=bool, default=False, help="Use precomputed surfaces"
@@ -69,6 +72,7 @@ parser.add_argument(
 parser.add_argument(
     "--in_channels",
     type=int,
+    #default=17,
     default=16,
     help="Number of embedding dimensions",
 )
@@ -166,13 +170,13 @@ parser.add_argument(
 parser.add_argument(
     "--single_pdb",
     type=str,
-    default = "1A2K_C_AB",
+    default = "",
     help="Which structure to do inference on",
 )
 parser.add_argument(
     "--pdb_list",
     type=str,
-    #default="/disk1/fingerprint/SAbDab_preparation/list/testing_ppi.txt",
-    default="",
+    default="/disk1/fingerprint/SAbDab_preparation/list/testing_ppi.txt",
+    #default="",
     help="Which structures to do inference on",
 )

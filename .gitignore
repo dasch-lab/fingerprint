@@ -41,6 +41,16 @@ z_prova_copy/
 provaESMFold/
 models/
 nohup_folder/
+surface_data_100/
+surface_data_ab/
+surface_data_ab_pp/
+SurfaceID/
+Distillation_S3AI/
+provaABodyBuilder2/
+preds/
+dmasif_wighted_flex_100.out
+
+
 
 # Translations
 *.mo
@@ -60,6 +70,6 @@ runs/
 
 # Ignore subfolders inside dataset folder
 SAbDab_preparation/
-
+git chec
 # Ignore cache
 cache/

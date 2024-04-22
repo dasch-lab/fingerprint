@@ -6,6 +6,7 @@ import os
 # Local includes
 from source.default_config.masif_opts import masif_opts
 from source.input_output.protonate import protonate
+import shutil
 
 if len(sys.argv) <= 1:
     print("Usage: " + sys.argv[0] + " PDBID_A_B")
@@ -24,8 +25,12 @@ pdb_id = in_fields[0]
 # Download pdb
 # pdbl = PDBList(server='http://files.wwpdb.org')
 
-pdb_filename = os.path.join(masif_opts['raw_pdb_dir'], pdb_id + ".pdb")
 
+pdb_filename = os.path.join(masif_opts['pdb_folder'], pdb_id + ".pdb")
+if os.path.exists(pdb_filename):
+    shutil.copy(pdb_filename, masif_opts['raw_pdb_dir'])
+
+pdb_filename = os.path.join(masif_opts['raw_pdb_dir'], pdb_id + ".pdb")
 if not os.path.exists(pdb_filename):
     pdbl = PDBList()
     pdb_filename = pdbl.retrieve_pdb_file(pdb_id, pdir=masif_opts['tmp_dir'], file_format='pdb')

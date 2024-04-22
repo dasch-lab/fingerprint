@@ -430,6 +430,7 @@ class dMaSIF(nn.Module):
             self.atomnet = AtomNet_MP_flex(args)
         else:
             self.atomnet = AtomNet_MP(args)
+            print('No flexibility')
         self.dropout = nn.Dropout(args.dropout)
 
         if args.embedding_layer == "dMaSIF":

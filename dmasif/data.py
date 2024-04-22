@@ -136,7 +136,7 @@ def load_protein_npy(pdb_id, data_dir, center=False, single_pdb=False, flexibili
     atom_types = tensor(np.load(data_dir / (pdb_id + "_atomtypes.npy")))
 
     if flexibility:
-        atom_flex = tensor(np.load(data_dir / (pdb_id + "_atomflex.npy")))
+        atom_flex = 100*tensor(np.load(data_dir / (pdb_id + "_atomflex.npy")))
         atom_flex = atom_flex.reshape(-1, 1)
 
     else:
@@ -267,11 +267,17 @@ def load_protein_pair(pdb_id, data_dir,single_pdb=False, flexibility=False):
     except FileNotFoundError:
         print(f"Issue with {p1_id}")
         raise  # Reraise the exception to propagate it further
+    except ValueError as e:
+        print("Issue with flexibility {}: {}".format(p1_id, str(e)))
+        raise
     
     try:
         p2 = load_protein_npy(p2_id, data_dir, center=False, single_pdb=single_pdb, flexibility = flexibility)
     except FileNotFoundError:
         print(f"Issue with {p2_id}")
+        raise
+    except ValueError as e:
+        print("Issue with flexibility {}: {}".format(p2_id, str(e)))
         raise
 
     if flexibility:
@@ -334,52 +340,6 @@ def load_protein_pair(pdb_id, data_dir,single_pdb=False, flexibility=False):
             atom_types_p1=p1["atom_types"],
             atom_types_p2=p2["atom_types"],
         )
-    """ try:
-
-        y_p1 = p1["y"]
-        y_p2 = p2["y"]
-
-        protein_pair_data = PairData(
-            xyz_p1=p1["xyz"],
-            xyz_p2=p2["xyz"],
-            face_p1=p1["face"],
-            face_p2=p2["face"],
-            chemical_features_p1=p1["chemical_features"],
-            chemical_features_p2=p2["chemical_features"],
-            y_p1=y_p1,
-            y_p2=y_p2,
-            normals_p1=p1["normals"],
-            normals_p2=p2["normals"],
-            center_location_p1=p1["center_location"],
-            center_location_p2=p2["center_location"],
-            atom_coords_p1=p1["atom_coords"],
-            atom_coords_p2=p2["atom_coords"],
-            atom_types_p1=p1["atom_types"],
-            atom_types_p2=p2["atom_types"],
-            atom_flex1=atom_flex_p1,
-            atom_flex2=atom_flex_p2
-        )
-    except KeyError:
-        protein_pair_data = PairData(
-            xyz_p1=None,
-            xyz_p2=None,
-            face_p1=None,
-            face_p2=None,
-            chemical_features_p1=None,
-            chemical_features_p2=None,
-            y_p1=None,
-            y_p2=None,
-            normals_p1=None,
-            normals_p2=None,
-            center_location_p1=None,
-            center_location_p2=None,
-            atom_coords_p1=p1["atom_coords"],
-            atom_coords_p2=p2["atom_coords"],
-            atom_types_p1=p1["atom_types"],
-            atom_types_p2=p2["atom_types"],
-            atom_flex1=atom_flex_p1,
-            atom_flex2=atom_flex_p2
-        )"""
 
     return protein_pair_data
     
@@ -388,9 +348,11 @@ def load_protein_pair(pdb_id, data_dir,single_pdb=False, flexibility=False):
 class ProteinPairsSurfaces(InMemoryDataset):
     url = ""
 
-    def __init__(self, root, ppi=False, train=True, transform=None, pre_transform=None, flexibility=False):
+    def __init__(self, root, ppi=False, train=True, transform=None, pre_transform=None, flexibility=False, antibody = False, mix = False):
         self.ppi = ppi
+        self.antibody = antibody
         self.flexibility = flexibility
+        self.mix = mix
         super(ProteinPairsSurfaces, self).__init__(root, transform, pre_transform)
         path = self.processed_paths[0] if train else self.processed_paths[1]
         self.data, self.slices = torch.load(path)
@@ -438,10 +400,22 @@ class ProteinPairsSurfaces(InMemoryDataset):
         #lists_dir = Path('./lists')
 
         
-        pdb_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_pdbs")
-        surf_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_surfaces")
-        protein_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_surfaces_npy")
-        lists_dir = Path('/disk1/fingerprint/dmasif/lists')
+        pdb_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_pdbs") 
+        # This is just because I forgot to not delate this folder for antibodies :(
+
+        if self.antibody:
+            surf_dir = Path("/disk1/fingerprint/data_preparation/01-benchmark_surfaces")
+            protein_dir = Path("/disk1/fingerprint/SAbDab_preparation/all_structures/npys_tot")
+            if self.mix:
+                lists_dir = Path("/disk1/fingerprint/SAbDab_preparation/list")
+            else:
+                lists_dir = Path("/disk1/fingerprint/SAbDab_preparation/list_pp")
+        else:
+            surf_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_surfaces")
+            protein_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_surfaces_npy")
+            lists_dir = Path('/disk1/fingerprint/dmasif/lists')
+
+        
 
 
 
@@ -503,6 +477,8 @@ class ProteinPairsSurfaces(InMemoryDataset):
                 protein_pair = load_protein_pair(p, protein_dir, flexibility=self.flexibility)
             except FileNotFoundError:
                 continue
+            except ValueError:
+                continue
             training_pairs_data.append(protein_pair)
             training_pairs_data_ids.append(p)
 
@@ -512,6 +488,8 @@ class ProteinPairsSurfaces(InMemoryDataset):
             try:
                 protein_pair = load_protein_pair(p, protein_dir, flexibility=self.flexibility)
             except FileNotFoundError:
+                continue
+            except ValueError:
                 continue
             testing_pairs_data.append(protein_pair)
             testing_pairs_data_ids.append(p)

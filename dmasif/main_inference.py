@@ -17,7 +17,8 @@ from Arguments import parser
 
 args = parser.parse_args()
 #model_path = "models/" + args.experiment_name
-model_path = "/disk1/fingerprint/dmasif/models/prova_epoch47"
+#model_path = "/disk1/fingerprint/models/prova_epoch40"
+model_path = "/disk1/fingerprint/models/flexibility_pdb3_epoch41"
 save_predictions_path = Path("preds/" + args.experiment_name)
 
 # Ensure reproducability:
@@ -38,15 +39,25 @@ if args.single_pdb != "":
     #single_data_dir = Path("./data_preprocessing/npys/")
     #single_data_dir = Path("/disk1/fingerprint/SAbDab_preparation/all_structures/npys")
     single_data_dir = Path("/disk1/fingerprint/dmasif/surface_data/raw/01-benchmark_surfaces_npy")
-    test_dataset = [load_protein_pair(args.single_pdb, single_data_dir,single_pdb=True)]
+    test_dataset = [load_protein_pair(args.single_pdb, single_data_dir,single_pdb=True, flexibility=args.flexibility)]
     test_pdb_ids = [args.single_pdb]
 elif args.pdb_list != "":
     with open(args.pdb_list) as f:
         pdb_list = f.read().splitlines()
     #single_data_dir = Path("./data_preprocessing/npys/")
-    single_data_dir = Path("/disk1/fingerprint/SAbDab_preparation/all_structures/npys")
-    test_dataset = [load_protein_pair(pdb, single_data_dir,single_pdb=True) for pdb in pdb_list]
-    test_pdb_ids = [pdb for pdb in pdb_list]
+    single_data_dir = Path("/disk1/fingerprint/SAbDab_preparation/all_structures/npys_tot")
+    test_dataset = []
+    test_pdb_ids = []
+    for pdb in pdb_list:
+        try:
+            test_dataset.append(load_protein_pair(pdb, single_data_dir,single_pdb=False, flexibility=args.flexibility))
+            test_pdb_ids.append(pdb)
+        except FileNotFoundError:
+                continue
+        except ValueError:
+            continue
+    #test_dataset = [load_protein_pair(pdb, single_data_dir,single_pdb=False, flexibility=args.flexibility) for pdb in pdb_list]
+    #test_pdb_ids = [pdb for pdb in pdb_list]
 else:
     if args.flexibility:
         test_dataset = ProteinPairsSurfaces(
@@ -97,6 +108,7 @@ info = iterate(
 )
 
 print(info)
+print(np.mean(info['ROC-AUC']))
 
 #np.save(f"timings/{args.experiment_name}_convtime.npy", info["conv_time"])
 #np.save(f"timings/{args.experiment_name}_memoryusage.npy", info["memory_usage"])
