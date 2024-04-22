@@ -309,7 +309,7 @@ class AtomNet_MP(nn.Module):
 
 class AtomNet_MP_flex(nn.Module):
     def __init__(self, args):
-        super(AtomNet_MP, self).__init__()
+        super(AtomNet_MP_flex, self).__init__()
         self.args = args
 
         self.transform_types = nn.Sequential(
@@ -317,7 +317,8 @@ class AtomNet_MP_flex(nn.Module):
             nn.LeakyReLU(negative_slope=0.2),
             nn.Linear(args.atom_dims, args.atom_dims),
         )
-        
+        self.embed = Atom_embedding_MP(args)
+        self.atom_atom = Atom_Atom_embedding_MP(args)
         self.embed_flex = Atom_embedding_flex_MP(args)
         self.atom_atom_flex = Atom_Atom_embedding_flex_MP(args)
 
@@ -336,35 +337,6 @@ class AtomNet_MP_flex(nn.Module):
         atomflex = self.embed_flex(xyz, atom_xyz, atomflex, batch, atom_batch)
         return atomtypes, atomflex
     
-
-class AtomNet_MP_flex(nn.Module):
-    def __init__(self, args):
-        super(AtomNet_MP, self).__init__()
-        self.args = args
-
-        self.transform_types = nn.Sequential(
-            nn.Linear(args.atom_dims, args.atom_dims),
-            nn.LeakyReLU(negative_slope=0.2),
-            nn.Linear(args.atom_dims, args.atom_dims),
-        )
-
-        #TODO: cambiare queste due classi aggiungendo la flexibility
-        self.embed = Atom_embedding_MP(args)
-        self.atom_atom = Atom_Atom_embedding_MP(args)
-
-    def forward(self, xyz, atom_xyz, atomtypes, atom_flex, batch, atom_batch):
-        # Run a DGCNN on the available information:
-        atomtypes = self.transform_types(atomtypes)
-        atomflex = self.transform_types(atom_flex)
-        atomtypes = self.atom_atom(
-            atom_xyz, atom_xyz, atomtypes, atom_batch, atom_batch
-        )
-        atomflex = self.atom_atom(
-            atom_xyz, atom_xyz, atomflex, atom_batch, atom_batch
-        )
-        atomtypes = self.embed(xyz, atom_xyz, atomtypes, batch, atom_batch)
-        atomflex = self.embed(xyz, atom_xyz, atomflex, batch, atom_batch)
-        return atomtypes, atom_flex
 
 
 def combine_pair(P1, P2):
@@ -454,8 +426,8 @@ class dMaSIF(nn.Module):
         H = args.post_units
 
         # Computes chemical features
-        if args.flex:
-            pass
+        if args.flexibility:
+            self.atomnet = AtomNet_MP_flex(args)
         else:
             self.atomnet = AtomNet_MP(args)
         self.dropout = nn.Dropout(args.dropout)

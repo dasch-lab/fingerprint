@@ -11,6 +11,8 @@ from tqdm import tqdm
 from geometry_processing import save_vtk
 from helper import numpy, diagonal_ranges
 import time
+from model import dMaSIF
+
 
 
 def process_single(protein_pair, chain_idx=1, flex = False):
@@ -440,7 +442,7 @@ def iterate_surface_precompute(dataset, net, args):
     processed_dataset = []
     for it, protein_pair in enumerate(tqdm(dataset)):
         protein_pair.to(args.device)
-        P1, P2 = process(args, protein_pair, net)
+        P1, P2 = process(args, protein_pair, net, args.flexibility)
         if args.random_rotation:
             P1["rand_rot"] = protein_pair.rand_rot1
             P1["atom_center"] = protein_pair.atom_center1

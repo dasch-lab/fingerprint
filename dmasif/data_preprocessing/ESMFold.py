@@ -279,11 +279,11 @@ def parse_pdb_b_factors_mean(structure, b_factors = None):
 if __name__ == "__main__":
     model = ESMModel()
     sequence = {}
-    for record in SeqIO.parse("/disk1/fingerprint/tmp/4FQI_AB.pdb", "pdb-atom"):
+    for record in SeqIO.parse("/disk1/fingerprint/SAbDab_preparation/surface_data_antibody/raw/01-benchmark_pdbs/1a3l_HL.pdb", "pdb-atom"):
         #print(record.id[-1])
         chain = record.id[-1]
         sequence[record.id[-1]] = str(record.seq)
-        out_file = '4FQI_'+ chain + '_ESMFold.pdb'
+        out_file = '1a3l_'+ chain + '_ESMFold.pdb'
         path = '/'.join(["/disk1/fingerprint/provaESMFold", out_file])
         output = model.generate_model(chain = chain, data=sequence[chain], pdb_write=True, model_path=path)
 """

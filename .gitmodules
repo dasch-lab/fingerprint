@@ -1,0 +1,3 @@
+[submodule "Distillation_S3AI"]
+	path = Distillation_S3AI
+	url = https://github.com/stau-7001/S3AI

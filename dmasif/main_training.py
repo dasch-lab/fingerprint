@@ -8,12 +8,13 @@ from torch_geometric.transforms import Compose
 from pathlib import Path
 
 # Custom data loader and model:
-from data import ProteinPairsSurfaces, PairData, CenterPairAtoms
+from data import ProteinPairsSurfaces, CenterPairAtoms
 from data import RandomRotationPairAtoms, NormalizeChemFeatures, iface_valid_filter
 from model import dMaSIF
 from data_iteration import iterate, iterate_surface_precompute
 from helper import *
 from Arguments import parser
+import torch.nn as nn
 
 # Parse the arguments, prepare the TensorBoard writer:
 args = parser.parse_args()
@@ -33,11 +34,11 @@ np.random.seed(args.seed)
 if args.flexibility:
     args.in_channels = args.in_channels + 1
 net = dMaSIF(args)
-net = net.to(args.device)
+net.to(args.device)
 
 # We load the train and test datasets.
 # Random transforms, to ensure that no network/baseline overfits on pose parameters:
-args.random_rotation = True
+#args.random_rotation = True
 transformations = (
     Compose([NormalizeChemFeatures(), CenterPairAtoms(), RandomRotationPairAtoms()])
     if args.random_rotation
@@ -106,7 +107,8 @@ best_loss = 1e10  # We save the "best model so far"
 
 starting_epoch = 0
 if args.restart_training != "":
-    checkpoint = torch.load("models/" + args.restart_training)
+    #checkpoint = torch.load("models/" + args.restart_training)
+    checkpoint = torch.load(args.restart_training)
     net.load_state_dict(checkpoint["model_state_dict"])
     optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
     starting_epoch = checkpoint["epoch"]

@@ -12,6 +12,7 @@ import argparse
 from tqdm import tqdm
 
 
+
 def export_lib(new_path, name):
     current_path = os.environ.get("PATH", "")
     if current_path:
@@ -19,8 +20,21 @@ def export_lib(new_path, name):
     os.environ["PATH"] = new_path
     print('Added path ' + name)
 
+def delete_folder(folder_path):
+    try:
+        # Remove the directory
+        os.rmdir(folder_path)
+        print(f"Folder '{folder_path}' deleted successfully.")
+    except OSError as e:
+            print(f"Error: {folder_path} : {e.strerror}")
+
 export_lib("/disk1/fingerprint/librerie/reduce/build/reduce/reduce_src/", 'reduce')
 os.environ["REDUCE_HET_DICT"] = "/disk1/fingerprint/librerie/reduce/reduce_wwPDB_het_dict.txt"
+folder_path = "/disk1/fingerprint/provaESMFold"
+
+# Check if the folder already exists
+if not os.path.exists(folder_path):
+    os.makedirs(folder_path)
 
 parser = argparse.ArgumentParser(description="Arguments")
 parser.add_argument(
@@ -116,39 +130,61 @@ def protonate(in_pdb_file, out_pdb_file):
     outfile.write(stdout.decode('utf-8'))
     outfile.close()
 
+def remove_files_raw(folder_path, pdb_id):
+    # List all files in the folder
+    files = os.listdir(folder_path)
+    # Iterate through the files
+    for file in files:
+        # Check if the file starts with the PDB ID
+        if file.startswith(pdb_id):
+            # Construct the full file path
+            file_path = os.path.join(folder_path, file)
+            # Remove the file
+            os.remove(file_path)
+
 
 
 def get_single(pdb_id: str, pdb_prot: str, chains: list):
     pdb_filename = pdb_dir/f"{pdb_id}.pdb"
     protonated_file = out_dir/f"{pdb_id}.pdb"
+    pattern = f"{pdb_id}_"
+    final_dir = os.listdir(npy_dir)
 
-    #if not protonated_file.exists():
-    #    # Download pdb 
-    #    pdbl = PDBList()
-    #    pdb_filename = pdbl.retrieve_pdb_file(pdb_id, pdir=tmp_dir,file_format='pdb')
+    file_exists = any(filename.startswith(pattern) for filename in final_dir)
 
-        ##### Protonate with reduce, if hydrogens included.
-        # - Always protonate as this is useful for charges. If necessary ignore hydrogens later.
-    
-    protonate(pdb_filename, protonated_file)
+    if not file_exists:
+        print(f"dMaSIF features for {pdb_id} do not exists")
 
-    pdb_filename = protonated_file
+        #if not protonated_file.exists():
+        #    # Download pdb 
+        #    pdbl = PDBList()
+        #    pdb_filename = pdbl.retrieve_pdb_file(pdb_id, pdir=tmp_dir,file_format='pdb')
 
-    # Extract chains of interest.
-    for chain in chains:
-        out_filename = pdb_dir/f"{pdb_id}_{chain}.pdb"
-        extractPDB(pdb_filename, str(out_filename), chain)
-        try:
-            protein = load_structure_np(out_filename,center=False)
-            np.save(npy_dir / f"{pdb_id}_{chain}_atomxyz.npy", protein["xyz"])
-            np.save(npy_dir / f"{pdb_id}_{chain}_atomtypes.npy", protein["types"])
-            np.save(npy_dir / f"{pdb_id}_{chain}_atomflex.npy", protein["flexibility"])
-        except Exception:
-            break
+            ##### Protonate with reduce, if hydrogens included.
+            # - Always protonate as this is useful for charges. If necessary ignore hydrogens later.
+        
+        protonate(pdb_filename, protonated_file)
+
+        pdb_filename = protonated_file
+
+        # Extract chains of interest.
+        for chain in chains:
+            out_filename = pdb_dir/f"{pdb_id}_{chain}.pdb"
+            extractPDB(pdb_filename, str(out_filename), chain)
+            try:
+                protein = load_structure_np(out_filename,center=False)
+                np.save(npy_dir / f"{pdb_id}_{chain}_atomxyz.npy", protein["xyz"])
+                np.save(npy_dir / f"{pdb_id}_{chain}_atomtypes.npy", protein["types"])
+                np.save(npy_dir / f"{pdb_id}_{chain}_atomflex.npy", protein["flexibility"])
+                remove_files_raw(folder_path,pdb_id)
+            except Exception:
+                print(f"Somethig went wrong with {pdb_id}_{chain}")
+                break
 
 
 if __name__ == '__main__':
     args = parser.parse_args()
+    count = 0
     if args.pdb != '':
         pdb_id = args.pdb.split('_')
         chains = pdb_id[1:]
@@ -157,7 +193,7 @@ if __name__ == '__main__':
     elif args.pdb_list != '':
         with open(args.pdb_list) as f:
             pdb_list = f.read().splitlines()
-        for pdb_id in tqdm(pdb_list[5657:], desc='Processing PDBs', unit='pdb'):
+        for pdb_id in tqdm(pdb_list, desc='Processing PDBs', unit='pdb'):
            pdb_id = pdb_id.split('_')
            chains = pdb_id[1:]
            pdb_id = pdb_id[0]
