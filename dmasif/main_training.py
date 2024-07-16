@@ -22,6 +22,9 @@ args = parser.parse_args()
 writer = SummaryWriter("runs/{}".format(args.experiment_name))
 model_path = "models/" + args.experiment_name
 
+print(f"Experiment name: {args.experiment_name} | Antibody: {args.antibody} | Flexibility: {args.flexibility}")
+#print(f"Recurrent: {args.recurrent} | Weighted: {args.weighted} | Embedding dimension: {args.emb_dims}")
+
 if not Path("models/").exists():
     Path("models/").mkdir(exist_ok=False)
 

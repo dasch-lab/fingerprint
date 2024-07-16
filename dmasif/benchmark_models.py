@@ -237,10 +237,11 @@ class dMaSIFConv_seg(torch.nn.Module):
         self.name = "dMaSIFConv_seg_keops"
         self.radius = radius
         self.I, self.O = in_channels, out_channels
+        self.recurrent = args.recurrent
 
         self.layers = nn.ModuleList(
-            [dMaSIFConv(self.I, self.O, radius, self.O)]
-            + [dMaSIFConv(self.O, self.O, radius, self.O) for i in range(n_layers - 1)]
+            [dMaSIFConv(self.I, self.O, radius, self.O, recurrent_flag = self.recurrent)]
+            + [dMaSIFConv(self.O, self.O, radius, self.O, recurrent_flag = self.recurrent) for i in range(n_layers - 1)]
         )
 
         self.linear_layers = nn.ModuleList(
@@ -257,12 +258,12 @@ class dMaSIFConv_seg(torch.nn.Module):
             + [nn.Linear(self.O, self.O) for i in range(n_layers - 1)]
         )
 
-    def forward(self, features):
+    def forward(self, features, recurrent_flex=None):
         # Lab: (B,), Pos: (N, 3), Batch: (N,)
         points, nuv, ranges = self.points, self.nuv, self.ranges
         x = features
         for i, layer in enumerate(self.layers):
-            x_i = layer(points, nuv, x, ranges)
+            x_i = layer(points, nuv, x, ranges, recurrent_flex)
             x_i = self.linear_layers[i](x_i)
             x = self.linear_transform[i](x)
             x = x + x_i

@@ -19,6 +19,12 @@ parser.add_argument(
     "--use_mesh", type=bool, default=False, help="Use precomputed surfaces"
 )
 parser.add_argument(
+    "--recurrent", type=bool, default=True, help="Recurrent flexibility when performing dMASIFConv"
+)
+parser.add_argument(
+    "--weight", type=int, default=1, help="Weighted flexibility"
+)
+parser.add_argument(
     "--embedding_layer",
     type=str,
     default="dMaSIF",
@@ -66,7 +72,7 @@ parser.add_argument(
 parser.add_argument(
     "--emb_dims",
     type=int,
-    default=8,
+    default=16,
     help="Number of input features (+ 3 xyz coordinates for DGCNNs)",
 )
 parser.add_argument(
@@ -166,6 +172,9 @@ parser.add_argument(
 )
 parser.add_argument(
     "--no_geom", type=bool, default=False, help="Predict without curvature information"
+)
+parser.add_argument(
+    "--no_flex", type=bool, default=False, help="Predict without flexibility"
 )
 parser.add_argument(
     "--single_pdb",

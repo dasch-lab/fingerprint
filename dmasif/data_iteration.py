@@ -11,7 +11,7 @@ from tqdm import tqdm
 from geometry_processing import save_vtk
 from helper import numpy, diagonal_ranges
 import time
-from model import dMaSIF
+#from model import dMaSIF
 
 
 
@@ -166,10 +166,10 @@ def generate_matchinglabels(args, P1, P2):
 
 def compute_loss(args, P1, P2, n_points_sample=16):
 
-    print("-------------------------- HERE -------------------------")
+    #print("-------------------------- HERE -------------------------")
 
-    print(f'P1: {P1.keys()}')
-    print(f'P2: {P2.keys()}')
+    #print(f'P1: {P1.keys()}')
+    #print(f'P2: {P2.keys()}')
 
     if args.search:
         pos_xyz1 = P1["xyz"][P1["labels"] == 1]

@@ -577,7 +577,7 @@ class ContiguousBackward(torch.autograd.Function):
 
 class dMaSIFConv(nn.Module):
     def __init__(
-        self, in_channels=1, out_channels=1, radius=1.0, hidden_units=None, cheap=False
+        self, in_channels=1, out_channels=1, radius=1.0, hidden_units=None, cheap=False, recurrent_flag = False
     ):
         """Creates the KeOps convolution layer.
 
@@ -633,8 +633,9 @@ class dMaSIFConv(nn.Module):
         self.Output = out_channels
         self.Radius = radius
         self.Hidden = self.Output if hidden_units is None else hidden_units
-        self.Cuts = 8  # Number of hidden units for the 3D MLP Filter.
+        self.Cuts = 8 # Number of hidden units for the 3D MLP Filter.
         self.cheap = cheap
+        self.recurrent = recurrent_flag
 
         # For performance reasons, we cut our "hidden" vectors
         # in n_heads "independent heads" of dimension 8.
@@ -650,43 +651,73 @@ class dMaSIFConv(nn.Module):
         else:
             self.n_heads = self.Hidden // self.heads_dim
 
+        if self.recurrent:
+            self.net_in = nn.Sequential(
+                nn.Linear(self.Input +1, self.Hidden),  # (H, I) + (H+1,)
+                nn.LeakyReLU(negative_slope=0.2),
+                nn.Linear(self.Hidden, self.Hidden),  # (H+1, H) + (H,)
+                nn.LeakyReLU(negative_slope=0.2),
+            )  #  (H,)
+            self.norm_in = nn.GroupNorm(4, self.Hidden)
 
-        # Transformation of the input features:
-        self.net_in = nn.Sequential(
-            nn.Linear(self.Input, self.Hidden),  # (H, I) + (H,)
-            nn.LeakyReLU(negative_slope=0.2),
-            nn.Linear(self.Hidden, self.Hidden),  # (H, H) + (H,)
-            # nn.LayerNorm(self.Hidden),#nn.BatchNorm1d(self.Hidden),
-            nn.LeakyReLU(negative_slope=0.2),
-        )  #  (H,)
-        self.norm_in = nn.GroupNorm(4, self.Hidden)
-        # self.norm_in = nn.LayerNorm(self.Hidden)
-        # self.norm_in = nn.Identity()
+            if cheap:
+                self.conv = nn.Sequential(
+                    nn.Linear(3, self.Hidden), nn.ReLU()  # (H, 3) + (H,)
+                )  # KeOps does not support well LeakyReLu
+            else:
+                self.conv = nn.Sequential(
+                    nn.Linear(3, self.Cuts),  # (C, 3) + (C,)
+                    nn.ReLU(),  # KeOps does not support well LeakyReLu
+                    nn.Linear(self.Cuts, self.Hidden),
+                )  # (H, C) + (H,)
 
-        # 3D convolution filters, encoded as an MLP:
-        if cheap:
-            self.conv = nn.Sequential(
-                nn.Linear(3, self.Hidden), nn.ReLU()  # (H, 3) + (H,)
-            )  # KeOps does not support well LeakyReLu
+            self.net_out = nn.Sequential(
+                nn.Linear(self.Hidden+1, self.Output),  # (O, H) + (O,)
+                nn.LeakyReLU(negative_slope=0.2),
+                nn.Linear(self.Output, self.Output),  # (O, O) + (O,)
+                # nn.LayerNorm(self.Output),#nn.BatchNorm1d(self.Output),
+                nn.LeakyReLU(negative_slope=0.2),
+            )  #  (O,)
+
+            self.norm_out = nn.GroupNorm(4, self.Output)
+
         else:
-            self.conv = nn.Sequential(
-                nn.Linear(3, self.Cuts),  # (C, 3) + (C,)
-                nn.ReLU(),  # KeOps does not support well LeakyReLu
-                nn.Linear(self.Cuts, self.Hidden),
-            )  # (H, C) + (H,)
+            # Transformation of the input features:
+            self.net_in = nn.Sequential(
+                nn.Linear(self.Input, self.Hidden),  # (H, I) + (H,)
+                nn.LeakyReLU(negative_slope=0.2),
+                nn.Linear(self.Hidden, self.Hidden),  # (H, H) + (H,)
+                # nn.LayerNorm(self.Hidden),#nn.BatchNorm1d(self.Hidden),
+                nn.LeakyReLU(negative_slope=0.2),
+            )  #  (H,)
+            self.norm_in = nn.GroupNorm(4, self.Hidden)
+            # self.norm_in = nn.LayerNorm(self.Hidden)
+            # self.norm_in = nn.Identity()
 
-        # Transformation of the output features:
-        self.net_out = nn.Sequential(
-            nn.Linear(self.Hidden, self.Output),  # (O, H) + (O,)
-            nn.LeakyReLU(negative_slope=0.2),
-            nn.Linear(self.Output, self.Output),  # (O, O) + (O,)
-            # nn.LayerNorm(self.Output),#nn.BatchNorm1d(self.Output),
-            nn.LeakyReLU(negative_slope=0.2),
-        )  #  (O,)
+            # 3D convolution filters, encoded as an MLP:
+            if cheap:
+                self.conv = nn.Sequential(
+                    nn.Linear(3, self.Hidden), nn.ReLU()  # (H, 3) + (H,)
+                )  # KeOps does not support well LeakyReLu
+            else:
+                self.conv = nn.Sequential(
+                    nn.Linear(3, self.Cuts),  # (C, 3) + (C,)
+                    nn.ReLU(),  # KeOps does not support well LeakyReLu
+                    nn.Linear(self.Cuts, self.Hidden+1),
+                )  # (H, C) + (H,)
 
-        self.norm_out = nn.GroupNorm(4, self.Output)
-        # self.norm_out = nn.LayerNorm(self.Output)
-        # self.norm_out = nn.Identity()
+            # Transformation of the output features:
+            self.net_out = nn.Sequential(
+                nn.Linear(self.Hidden, self.Output),  # (O, H) + (O,)
+                nn.LeakyReLU(negative_slope=0.2),
+                nn.Linear(self.Output, self.Output),  # (O, O) + (O,)
+                # nn.LayerNorm(self.Output),#nn.BatchNorm1d(self.Output),
+                nn.LeakyReLU(negative_slope=0.2),
+            )  #  (O,)
+
+            self.norm_out = nn.GroupNorm(4, self.Output)
+            # self.norm_out = nn.LayerNorm(self.Output)
+            # self.norm_out = nn.Identity()
 
         # Custom initialization for the MLP convolution filters:
         # we get interesting piecewise affine cuts on a normalized neighborhood.
@@ -705,7 +736,7 @@ class dMaSIFConv(nn.Module):
                 self.conv[2].bias *= 0.5 * (self.conv[2].weight ** 2).sum(-1).sqrt()
 
 
-    def forward(self, points, nuv, features, ranges=None):
+    def forward(self, points, nuv, features, ranges=None, recurrent_flex = None):
         """Performs a quasi-geodesic interaction step.
 
         points, local basis, in features  ->  out features
@@ -730,7 +761,11 @@ class dMaSIFConv(nn.Module):
         """
 
         # 1. Transform the input features: -------------------------------------
-        features = self.net_in(features)  # (N, I) -> (N, H)
+        if self.recurrent:
+            features = torch.cat([features, recurrent_flex], dim=-1)
+            features = self.net_in(features)
+        else:
+            features = self.net_in(features)  # (N, I) -> (N, H)
         features = features.transpose(1, 0)[None, :, :]  # (1,H,N)
         features = self.norm_in(features)
         features = features[0].transpose(1, 0).contiguous()  # (1, H, N) -> (N, H)
@@ -765,12 +800,22 @@ class dMaSIFConv(nn.Module):
         for head in range(self.n_heads):
 
             # Extract a slice of width Hd from the feature array
+            #head_start = head * self.heads_dim
+            #head_end = head_start + self.heads_dim
+
             head_start = head * self.heads_dim
             head_end = head_start + self.heads_dim
             head_features = features[:, head_start:head_end].contiguous()  # (N, H) -> (N, Hd)
-
-            # Features:
             f_j = LazyTensor(head_features[None, :, :])  # (1, N, Hd)
+            
+
+            """# Features:
+            if self.recurrent:
+                head_start = head * (self.heads_dim +1)
+                head_end = head_start + (self.heads_dim+1)
+                head_features = torch.cat([head_features, recurrent_flex], dim=-1)  # (N, Hd) -> (N, Hd+1)
+                f_j = LazyTensor(head_features[None, :, :])  # (1, N, Hd+1)"""
+                
 
             # Convolution parameters:
             if self.cheap:
@@ -822,7 +867,11 @@ class dMaSIFConv(nn.Module):
         features = torch.cat(head_out_features, dim=1)  # n_heads * (N, Hd) -> (N, H)
 
         # 3. Transform the output features: ------------------------------------
-        features = self.net_out(features)  # (N, H) -> (N, O)
+        if self.recurrent:
+            features = torch.cat([features, recurrent_flex], dim=-1)
+            features = self.net_out(features)
+        else:
+            features = self.net_out(features)  # (N, H) -> (N, O)
         features = features.transpose(1, 0)[None, :, :]  # (1,O,N)
         features = self.norm_out(features)
         features = features[0].transpose(1, 0).contiguous()

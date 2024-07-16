@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.autograd.profiler as profiler
 from pykeops.torch import LazyTensor
+from data_iteration import process, extract_single 
 
 from geometry_processing import (
     curvatures,
@@ -14,6 +15,8 @@ from geometry_processing import (
 )
 from helper import soft_dimension, diagonal_ranges
 from benchmark_models import DGCNN_seg, PointNet2_seg, dMaSIFConv_seg
+import warnings
+warnings.filterwarnings("ignore", message="torch.cuda.reset_max_memory_allocated now calls torch.cuda.reset_peak_memory_stats")
 
 
 def knn_atoms(x, y, x_batch, y_batch, k):
@@ -151,7 +154,7 @@ class Atom_embedding_flex_MP(nn.Module):
         self.D = 1
         self.k = 16
         #self.k = 17
-        self.n_layers = 3
+        """self.n_layers = 3
         self.mlp = nn.ModuleList(
             [
                 nn.Sequential(
@@ -165,18 +168,24 @@ class Atom_embedding_flex_MP(nn.Module):
         self.norm = nn.ModuleList(
             [nn.GroupNorm(1, self.D) for i in range(self.n_layers)]
         )
-        self.relu = nn.LeakyReLU(negative_slope=0.2)
+        self.relu = nn.LeakyReLU(negative_slope=0.2)"""
 
-    def forward(self, x, y, y_atomtypes, x_batch, y_batch):
+    def forward(self, x, y, y_atomflex, x_batch, y_batch):
         
         k = self.k
         idx, dists = knn_atoms(x, y, x_batch, y_batch, k)  # N, 9, 7
         num_points = x.shape[0]
-        num_dims = y_atomtypes.shape[-1]
+        num_dims = y_atomflex.shape[-1]
+        features = y_atomflex[idx.reshape(-1), :]
+        #features = torch.cat([features, dists.reshape(-1, 1)], dim=1)
+        #features = features.view(num_points, k, num_dims + 1)
+        features = features.view(num_points, k, num_dims)
+        features = features.mean(dim=1)
+        return features
 
-        point_emb = torch.ones_like(x[:, 0])[:, None].repeat(1, num_dims)
+        """point_emb = torch.ones_like(x[:, 0])[:, None].repeat(1, num_dims)
         for i in range(self.n_layers):
-            features = y_atomtypes[idx.reshape(-1), :]
+            features = y_atomflex[idx.reshape(-1), :]
             features = torch.cat([features, dists.reshape(-1, 1)], dim=1)
             features = features.view(num_points, k, num_dims + 1)
             features = torch.cat(
@@ -187,7 +196,7 @@ class Atom_embedding_flex_MP(nn.Module):
             messages = messages.sum(1)  # N,6
             point_emb = point_emb + self.relu(self.norm[i](messages))
 
-        return point_emb
+        return point_emb"""
 
 class Atom_Atom_embedding_MP(nn.Module):
     def __init__(self, args):
@@ -361,11 +370,11 @@ def combine_pair(P1, P2):
 
 def split_pair(P1P2):
     batch_size = P1P2["batch_atoms"][-1] + 1
-    p1_indices = P1P2["batch"] < batch_size // 2
-    p2_indices = P1P2["batch"] >= batch_size // 2
+    p1_indices = P1P2["batch"] < torch.div(batch_size, 2, rounding_mode='floor')
+    p2_indices = P1P2["batch"] >= torch.div(batch_size, 2, rounding_mode='floor')
 
-    p1_atom_indices = P1P2["batch_atoms"] < batch_size // 2
-    p2_atom_indices = P1P2["batch_atoms"] >= batch_size // 2
+    p1_atom_indices = P1P2["batch_atoms"] < torch.div(batch_size, 2, rounding_mode='floor')
+    p2_atom_indices = P1P2["batch_atoms"] >= torch.div(batch_size, 2, rounding_mode='floor')
 
     P1 = {}
     P2 = {}
@@ -373,7 +382,7 @@ def split_pair(P1P2):
         v1v2 = P1P2[key]
 
         if (key == "rand_rot") or (key == "atom_center"):
-            n = v1v2.shape[0] // 2
+            n = torch.div(v1v2.shape[0], 2, rounding_mode='floor')
             P1[key] = v1v2[:n].view(-1, 3)
             P2[key] = v1v2[n:].view(-1, 3)
         elif "atom" in key:
@@ -510,7 +519,7 @@ class dMaSIF(nn.Module):
             batch=P["batch"],
         )
 
-        # Compute chemical features on-the-fly:
+        # Compute chemical features on-the-fly: #TODO: Control the flexibility embeddings because the flexibility changes to 1.0
         if self.args.flexibility:
             chemfeats, flexibility = self.atomnet(
                 P["xyz"], P["atom_xyz"], P["atomtypes"], P["batch"], P["batch_atoms"], P["atomflex"],
@@ -524,6 +533,8 @@ class dMaSIF(nn.Module):
             chemfeats = 0.0 * chemfeats
         if self.args.no_geom:
             P_curvatures = 0.0 * P_curvatures
+        if self.args.flexibility and self.args.no_flex:
+            flexibility = 0.0 * flexibility
 
         # Concatenate our features:
         if self.args.flexibility:
@@ -534,7 +545,14 @@ class dMaSIF(nn.Module):
     def embed(self, P):
         """Embeds all points of a protein in a high-dimensional vector space."""
 
-        features = self.dropout(self.features(P))
+        features = self.features(P)
+        if self.args.weight!=1:
+            features[-1] = self.args.weight * features[-1]
+        if self.args.recurrent:
+            recurrent_flex = features[:, -1].unsqueeze(1)
+        else:
+            recurrent_flex = None
+        features = self.dropout(features)
         P["input_features"] = features
 
         torch.cuda.synchronize(device=features.device)
@@ -550,7 +568,7 @@ class dMaSIF(nn.Module):
                 weights=self.orientation_scores(features),
                 batch=P["batch"],
             )
-            P["embedding_1"] = self.conv(features)
+            P["embedding_1"] = self.conv(features, recurrent_flex)
             if self.args.search:
                 self.conv2.load_mesh(
                     P["xyz"],
@@ -559,7 +577,7 @@ class dMaSIF(nn.Module):
                     weights=self.orientation_scores2(features),
                     batch=P["batch"],
                 )
-                P["embedding_2"] = self.conv2(features)
+                P["embedding_2"] = self.conv2(features, recurrent_flex)
 
         # First baseline:
         elif self.args.embedding_layer == "DGCNN":
@@ -625,3 +643,69 @@ class dMaSIF(nn.Module):
             "conv_time": conv_time,
             "memory_usage": memory_usage,
         }
+
+class ExpModel(nn.Module):
+    def __init__(self, model_path, args):
+        super(ExpModel, self).__init__()
+
+        self.masif_model = dMaSIF(args)
+        self.args = args
+        # net.load_state_dict(torch.load(model_path, map_location=args.device))
+        self.masif_model.load_state_dict(
+            torch.load(model_path, map_location=args.device)["model_state_dict"]
+        )
+        self.masif_model.to(args.device)
+
+
+    def __pre_process_data(self, protein_pair):
+        print(protein_pair, type(protein_pair))
+        protein_batch_size = protein_pair.atom_coords_p1_batch[-1].item() + 1
+        protein_pair.to(self.args.device)
+        
+        P1_batch, P2_batch = process(self.args, protein_pair, self.masif_model, self.args.flexibility)
+
+        for protein_it in range(protein_batch_size):
+            torch.cuda.synchronize()
+
+            P1 = extract_single(P1_batch, protein_it, self.args)
+            P2 = None if self.args.single_protein else extract_single(P2_batch, protein_it, self.args)
+
+
+            if self.args.random_rotation:
+                P1["rand_rot"] = protein_pair.rand_rot1.view(-1, 3, 3)[0]
+                P1["atom_center"] = protein_pair.atom_center1.view(-1, 1, 3)[0]
+                P1["xyz"] = P1["xyz"] - P1["atom_center"]
+                P1["xyz"] = (
+                    torch.matmul(P1["rand_rot"], P1["xyz"].T).T
+                ).contiguous()
+                P1["normals"] = (
+                    torch.matmul(P1["rand_rot"], P1["normals"].T).T
+                ).contiguous()
+                if not self.args.single_protein:
+                    P2["rand_rot"] = protein_pair.rand_rot2.view(-1, 3, 3)[0]
+                    P2["atom_center"] = protein_pair.atom_center2.view(-1, 1, 3)[0]
+                    P2["xyz"] = P2["xyz"] - P2["atom_center"]
+                    P2["xyz"] = (
+                        torch.matmul(P2["rand_rot"], P2["xyz"].T).T
+                    ).contiguous()
+                    P2["normals"] = (
+                        torch.matmul(P2["rand_rot"], P2["normals"].T).T
+                    ).contiguous()
+            else:
+                P1["rand_rot"] = torch.eye(3, device=P1["xyz"].device)
+                P1["atom_center"] = torch.zeros((1, 3), device=P1["xyz"].device)
+                if not self.args.single_protein:
+                    P2["rand_rot"] = torch.eye(3, device=P2["xyz"].device)
+                    P2["atom_center"] = torch.zeros((1, 3), device=P2["xyz"].device)
+                    
+            return P1, P2
+
+    def forward(self, x):
+        p1,p2 = self.__pre_process_data(x)
+        print(type(p1))
+        outputs = self.masif_model(p1,p2)
+        P1 = outputs["P1"]["labels"]
+        P2 = outputs["P2"]["labels"]
+
+        out = torch.concat((P1,P2), 0)
+        return out
