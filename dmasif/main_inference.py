@@ -11,15 +11,22 @@ from pathlib import Path
 from data import ProteinPairsSurfaces, PairData, CenterPairAtoms, load_protein_pair
 from data import RandomRotationPairAtoms, NormalizeChemFeatures, iface_valid_filter
 from model import dMaSIF
+#from old.model_modifications import dMaSIF
 from data_iteration import iterate
 from helper import *
 from Arguments import parser
 
 args = parser.parse_args()
 #model_path = "models/" + args.experiment_name
+model_path = "/disk1/fingerprint/models/prova_epoch47"
+model_path = "/disk1/fingerprint/models/antibody_pp_epoch47"
 #model_path = "/disk1/fingerprint/models/prova_epoch40"
+#model_path = "/disk1/fingerprint/models/dmasif_standard_epoch46"
 #model_path = "/disk1/fingerprint/models/flexibility_pdb3_epoch45"
-model_path = "/disk1/fingerprint/models/prova_epoch45"
+#model_path = "/disk1/fingerprint/models/prova_epoch45"
+#model_path = "/disk1/fingerprint/models/dmasif_recurrent_epoch49"
+#model_path = "/disk1/fingerprint/models/dmasif_flexibility_modification_epoch49"
+#model_path = "/disk1/fingerprint/models/dmasif_weighted_flexibility_2_epoch47"
 save_predictions_path = Path("preds/" + args.experiment_name)
 
 if args.flexibility:

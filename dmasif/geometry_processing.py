@@ -703,7 +703,7 @@ class dMaSIFConv(nn.Module):
                 self.conv = nn.Sequential(
                     nn.Linear(3, self.Cuts),  # (C, 3) + (C,)
                     nn.ReLU(),  # KeOps does not support well LeakyReLu
-                    nn.Linear(self.Cuts, self.Hidden+1),
+                    nn.Linear(self.Cuts, self.Hidden),
                 )  # (H, C) + (H,)
 
             # Transformation of the output features:

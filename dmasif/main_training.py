@@ -16,6 +16,7 @@ from data_iteration import iterate, iterate_surface_precompute
 from helper import *
 from Arguments import parser
 import torch.nn as nn
+from pytorch_earlystopping import EarlyStopping
 
 # Parse the arguments, prepare the TensorBoard writer:
 args = parser.parse_args()
@@ -121,6 +122,8 @@ if args.restart_training != "":
     starting_epoch = checkpoint["epoch"]
     best_loss = checkpoint["best_loss"]
 
+early_stopping = EarlyStopping(patience=args.early_stopping, verbose=True)
+
 # Training loop (~100 times) over the dataset:
 for i in range(starting_epoch, args.n_epochs):
     # Train first, Test second:
@@ -149,6 +152,13 @@ for i in range(starting_epoch, args.n_epochs):
             epoch_number=i,
             flex = args.flexibility,
         )
+
+        if dataset_type == "Validation" and i > 49:
+            early_stopping(info["Loss"])
+
+            if early_stopping.early_stop:
+                print("Early stopping")
+                exit()
 
         # Write down the results using a TensorBoard writer:
         for key, val in info.items():

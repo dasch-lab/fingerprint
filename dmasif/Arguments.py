@@ -7,7 +7,7 @@ parser.add_argument(
     "--experiment_name", type=str, help="Name of experiment", default="dmasif_pred_Ab_flex_finetuning"
 )
 parser.add_argument(
-    "--antibody", type=bool, help="Training on Antibodies", default=False
+    "--antibody", type=bool, help="Training on Antibodies", default=True
 )
 parser.add_argument(
     "--flexibility", type=bool, help="Use flexibility", default=True
@@ -19,7 +19,7 @@ parser.add_argument(
     "--use_mesh", type=bool, default=False, help="Use precomputed surfaces"
 )
 parser.add_argument(
-    "--recurrent", type=bool, default=True, help="Recurrent flexibility when performing dMASIFConv"
+    "--recurrent", type=bool, default=False, help="Recurrent flexibility when performing dMASIFConv"
 )
 parser.add_argument(
     "--weight", type=int, default=1, help="Weighted flexibility"
@@ -72,13 +72,12 @@ parser.add_argument(
 parser.add_argument(
     "--emb_dims",
     type=int,
-    default=16,
+    default=8,
     help="Number of input features (+ 3 xyz coordinates for DGCNNs)",
 )
 parser.add_argument(
     "--in_channels",
     type=int,
-    #default=17,
     default=16,
     help="Number of embedding dimensions",
 )
@@ -121,7 +120,7 @@ parser.add_argument(
 
 # Training
 parser.add_argument(
-    "--n_epochs", type=int, default=50, help="Number of training epochs"
+    "--n_epochs", type=int, default=150, help="Number of training epochs"
 )
 parser.add_argument(
     "--batch_size", type=int, default=1, help="Number of proteins in a batch"
@@ -132,7 +131,7 @@ parser.add_argument(
 parser.add_argument(
     "--restart_training",
     type=str,
-    default="",
+    default="/disk1/fingerprint/models/dmasif_flexibility_modification_2_epoch99",
     help="Which model to restart the training from",
 )
 parser.add_argument(
@@ -146,6 +145,12 @@ parser.add_argument(
     type=float,
     default=0.1,
     help="Fraction of training dataset to use for validation",
+)
+parser.add_argument(
+    "--early_stopping",
+    type=int,
+    default=20,
+    help="Early stopping patient",
 )
 parser.add_argument("--seed", type=int, default=42, help="Random seed")
 parser.add_argument(
