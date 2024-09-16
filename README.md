@@ -7,16 +7,16 @@ Antibodies are essential proteins in the immune system due to their capacity to 
 
 To create the environment, run the following command:
 
-'''
+```
 conda create -n flexibility python=3.8.18 pip -y
 conda activate flexibility
 pip install -r requirements.txt
-'''
+```
 
 ## Model training and evaluation ##
 To train the model and to evaluate the model run the following commands:
 
-'''
+```
 python main_training.py
 python main_inference.py
-'''
+```
