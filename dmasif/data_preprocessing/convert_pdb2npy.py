@@ -5,9 +5,9 @@ from Bio.PDB import *
 from pathlib import Path
 from Bio import SeqIO
 import os
-from ImmuneBuilder import ABodyBuilder2
-from ImmuneBuilder.util import sequence_dict_from_fasta
-from ImmuneBuilder.constants import restypes
+#from ImmuneBuilder import ABodyBuilder2
+#from ImmuneBuilder.util import sequence_dict_from_fasta
+#from ImmuneBuilder.constants import restypes
 
 try:
     from data_preprocessing.ESMFold import ESMModel, parse_pdb_b_factors_mean
@@ -29,15 +29,16 @@ def computeFlexibility(fname, abb2 = False, list_chian = None):
     pdb_name = fname.split('/')[-1].split('_')[0]
     b_factor_dict = {}
     sequence_list = []
-    predictor = ABodyBuilder2()
+    #predictor = ABodyBuilder2()
 
     for record in SeqIO.parse(fname, "pdb-atom"):
         chain = record.id[-1]
         print(chain)
         sequence_list.append(str(record.seq))
         print(len(str(record.seq)))
-
-    if abb2 and list_chian is not None:
+    
+    
+    """if abb2 and list_chian is not None:
         out_file = pdb_name.split('.')[0] + '_' + ''.join(list_chian) + '_ABB2.pdb'
         pdb_path = '/'.join([path_abb2, out_file])
         if len(sequence_list)==2:
@@ -63,15 +64,15 @@ def computeFlexibility(fname, abb2 = False, list_chian = None):
 
             print(b_factor_dict_new)
             return(b_factor_dict_new)
-    else:
-        for element in sequence_list:
-            out_file = pdb_name.split('.')[0] + '_' + chain + '_ESMFold.pdb'
-            path = '/'.join([path_esm, out_file])
-            output = model.generate_model(chain = chain, data=element, pdb_write=True, model_path=path)
-            change_res_id(path)
+    else:"""
+    for element in sequence_list:
+        out_file = pdb_name.split('.')[0] + '_' + chain + '_ESMFold.pdb'
+        path = '/'.join([path_esm, out_file])
+        output = model.generate_model(chain = chain, data=element, pdb_write=True, model_path=path)
+        change_res_id(path)
 
-            structure = parser.get_structure(path.split('.')[0], path)
-            b_factor_dict = parse_pdb_b_factors_mean(structure, b_factor_dict)
+        structure = parser.get_structure(path.split('.')[0], path)
+        b_factor_dict = parse_pdb_b_factors_mean(structure, b_factor_dict)
         
     
     return b_factor_dict

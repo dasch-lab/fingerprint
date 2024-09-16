@@ -1,5 +1,7 @@
 import torch
-from torch_geometric.data import InMemoryDataset, Data, DataLoader
+#from torch_geometric.data import InMemoryDataset, Data, DataLoader
+from torch_geometric.data import InMemoryDataset, Data
+from torch_geometric.loader import DataLoader
 from torch_geometric.transforms import Compose
 import numpy as np
 from scipy.spatial.transform import Rotation

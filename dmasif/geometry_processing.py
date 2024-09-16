@@ -133,9 +133,10 @@ def subsample(x, batch=None, scale=1.0):
     return torch.cat(points, dim=0), torch.cat(batches, dim=0)
 
 def compute_soft_distances_type_flex(atomtypes, atomflex, D_ij, x, smoothness):
-    atomic_radii = torch.cuda.FloatTensor(
-            [170, 110, 152, 155, 180, 190], device=x.device
-        )
+    atomic_radii = torch.tensor([170, 110, 152, 155, 180, 190], dtype=torch.float32, device=x.device)
+    #atomic_radii = torch.cuda.FloatTensor(
+    #        [170, 110, 152, 155, 180, 190], device=x.device
+    #    )
     atomic_radii = atomic_radii / atomic_radii.min()
     atomtype_radii = atomtypes * atomic_radii[None, :]  # n_atoms, n_atomtypes
     #atomflex_radii = atomflex * atomic_radii[None, :]

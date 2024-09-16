@@ -10,7 +10,8 @@ from torch.nn import (
     BatchNorm1d as BN,
 )
 import torch_geometric.transforms as T
-from torch_geometric.data import DataLoader
+#from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 from torch_geometric.nn import (
     DynamicEdgeConv,
     PointNetConv,

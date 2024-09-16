@@ -3,7 +3,8 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import random_split
-from torch_geometric.data import DataLoader
+#from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 from torch_geometric.transforms import Compose
 from pathlib import Path
 
@@ -27,6 +28,8 @@ model_path = "/disk1/fingerprint/models/antibody_pp_epoch47"
 #model_path = "/disk1/fingerprint/models/dmasif_recurrent_epoch49"
 #model_path = "/disk1/fingerprint/models/dmasif_flexibility_modification_epoch49"
 #model_path = "/disk1/fingerprint/models/dmasif_weighted_flexibility_2_epoch47"
+#model_path = "/disk1/fingerprint/models/dmasif_modflex_Ab_cv_2_epoch85"
+model_path = "/disk1/fingerprint/models/dmasif_modflex_3layers_16emb_10rad_cv_3_epoch48"
 save_predictions_path = Path("preds/" + args.experiment_name)
 
 if args.flexibility:

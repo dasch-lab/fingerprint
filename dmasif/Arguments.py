@@ -19,7 +19,7 @@ parser.add_argument(
     "--use_mesh", type=bool, default=False, help="Use precomputed surfaces"
 )
 parser.add_argument(
-    "--recurrent", type=bool, default=False, help="Recurrent flexibility when performing dMASIFConv"
+    "--recurrent", type=bool, default=True, help="Recurrent flexibility when performing dMASIFConv"
 )
 parser.add_argument(
     "--weight", type=int, default=1, help="Weighted flexibility"
@@ -72,7 +72,7 @@ parser.add_argument(
 parser.add_argument(
     "--emb_dims",
     type=int,
-    default=8,
+    default=16,
     help="Number of input features (+ 3 xyz coordinates for DGCNNs)",
 )
 parser.add_argument(
@@ -100,10 +100,10 @@ parser.add_argument(
     help="Number of hidden units for the post-processing MLP",
 )
 parser.add_argument(
-    "--n_layers", type=int, default=1, help="Number of convolutional layers"
+    "--n_layers", type=int, default=5, help="Number of convolutional layers"
 )
 parser.add_argument(
-    "--radius", type=float, default=9.0, help="Radius to use for the convolution"
+    "--radius", type=float, default=10.0, help="Radius to use for the convolution"
 )
 parser.add_argument(
     "--k",
@@ -120,7 +120,7 @@ parser.add_argument(
 
 # Training
 parser.add_argument(
-    "--n_epochs", type=int, default=150, help="Number of training epochs"
+    "--n_epochs", type=int, default=100, help="Number of training epochs"
 )
 parser.add_argument(
     "--batch_size", type=int, default=1, help="Number of proteins in a batch"
@@ -131,7 +131,11 @@ parser.add_argument(
 parser.add_argument(
     "--restart_training",
     type=str,
-    default="/disk1/fingerprint/models/dmasif_flexibility_modification_2_epoch99",
+    #default="/disk1/fingerprint/models/dmasif_flexibility_modification_2_epoch99",
+    #default="/disk1/fingerprint/models/prova_epoch97",
+    #default="/disk1/fingerprint/models/dmasif_modflex_3layers_16_epoch47",
+    #default="/disk1/fingerprint/models/dmasif_recurrent_epoch49",
+    default="",
     help="Which model to restart the training from",
 )
 parser.add_argument(
@@ -149,7 +153,7 @@ parser.add_argument(
 parser.add_argument(
     "--early_stopping",
     type=int,
-    default=20,
+    default=100,
     help="Early stopping patient",
 )
 parser.add_argument("--seed", type=int, default=42, help="Random seed")
@@ -190,7 +194,13 @@ parser.add_argument(
 parser.add_argument(
     "--pdb_list",
     type=str,
-    default="/disk1/fingerprint/SAbDab_preparation/list/testing_ppi.txt",
+    default="/disk1/fingerprint/SAbDab_preparation/list_pp/testing_ppi.txt",
     #default="",
     help="Which structures to do inference on",
+)
+parser.add_argument(
+    "--cross_validation", type=bool, help="10-fold cross-validation", default=True
+)
+parser.add_argument(
+    "--kfold", type=int, help="subset of the 10 fold", default=9
 )

@@ -3,7 +3,8 @@ import numpy as np
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import random_split
-from torch_geometric.data import DataLoader
+#from torch_geometric.data import DataLoader
+from torch_geometric.loader import DataLoader
 from torch_geometric.transforms import Compose
 from pathlib import Path
 
@@ -61,7 +62,19 @@ batch_vars = ["xyz_p1", "xyz_p2", "atom_coords_p1", "atom_coords_p2"]
 if args.antibody and args.mix:
     folder_data = "surface_data_ab"
 elif args.antibody:
-    folder_data = "surface_data_ab_pp"
+    if args.seed == 42:
+        #folder_data = "surface_data_ab_pp"
+        folder_data = "surface_data_42"
+        print('Seed: 42')
+    elif args.seed == 123:
+        folder_data = "surface_data_123"
+        print('Seed: 123')
+    elif args.seed == 98765:
+        folder_data = "surface_data_98765"
+        print('Seed: 98765')
+    else:
+        folder_data = "surface_data_2024"
+        print('Seed: 2024')
 else:
     folder_data = "surface_data"
 
